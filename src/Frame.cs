@@ -1,6 +1,7 @@
 ﻿using ICSharpCode.SharpZipLib.Zip.Compression;
 using SixLabors.ImageSharp.Formats;
 using System.Net.Http.Headers;
+using System.Runtime.Serialization.Formatters;
 
 namespace Velocity
 {
@@ -75,6 +76,31 @@ namespace Velocity
             }
         }
 
+        private void ParseComponent(int layer, byte[] input, byte[] buffer)
+        {
+            int rawIndex = layer * Width * Height;
+            int pixelIndex = 0;
+
+            for (int row = 0; row < Height; row++)
+            {
+                for (int column = 0; column < Width; column++)
+                {
+                    if (row == 0 && column == 0)
+                    {
+                        // The base pixel is used as-is.
+                    }
+                    else
+                    {
+                        input[rawIndex] += input[rawIndex - 1];
+                    }
+                    buffer[pixelIndex] = input[rawIndex];
+
+                    pixelIndex++;
+                    rawIndex++;
+                }
+            }
+        }
+
         public Image ToImage()
         {
             Image image;
@@ -91,44 +117,29 @@ namespace Velocity
                 Rgba32[] pixelData = new Rgba32[Width * Height];
                 Array.Fill(pixelData, new Rgba32());
 
-                int rawIndex = 0;
-                for (int layer = 1; layer <= 4; layer++)
+                for (int layer = 0; layer < 4; layer++)
                 {
-                    int pixelIndex = 0;
-                    for (int row = 0; row < Height; row++)
+                    byte[] componentData = new byte[Width * Height];
+                    ParseComponent(layer, temp, componentData);
+
+                    for (int pixelIndex = 0; pixelIndex < pixelData.Length; pixelIndex++)
                     {
-                        for (int column = 0; column < Width; column++)
+                        switch (layer)
                         {
-                            if (row == 0 && column == 0)
-                            {
-                                // The base pixel is used as-is.
-                            }
-                            else
-                            {
-                                temp[rawIndex] += temp[rawIndex - 1];
-                            }
-                            byte component = temp[rawIndex];
-
-                            switch (layer)
-                            {
-                                case 1:
-                                    pixelData[pixelIndex].R = component;
-                                    break;
-                                case 2:
-                                    pixelData[pixelIndex].G = component;
-                                    break;
-                                case 3:
-                                    pixelData[pixelIndex].B = component;
-                                    break;
-                                case 4:
-                                    pixelData[pixelIndex].A = component;
-                                    break;
-                                default:
-                                    throw new InvalidOperationException();
-                            }
-
-                            pixelIndex++;
-                            rawIndex++;
+                            case 0:
+                                pixelData[pixelIndex].R = componentData[pixelIndex];
+                                break;
+                            case 1:
+                                pixelData[pixelIndex].G = componentData[pixelIndex];
+                                break;
+                            case 2:
+                                pixelData[pixelIndex].B = componentData[pixelIndex];
+                                break;
+                            case 3:
+                                pixelData[pixelIndex].A = componentData[pixelIndex];
+                                break;
+                            default:
+                                throw new InvalidOperationException();
                         }
                     }
                 }
