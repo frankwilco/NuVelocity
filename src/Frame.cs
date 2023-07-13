@@ -103,11 +103,30 @@ namespace Velocity
 
         public Image ToImage()
         {
-            Image image;
+            Image<Rgba32> image;
             if (!IsCompressed)
             {
-                image = Image.Load(new ReadOnlySpan<byte>(_data));
-                // FIXME: process mask
+                image = Image.Load<Rgba32>(new ReadOnlySpan<byte>(_data));
+                Width = image.Width;
+                Height = image.Height;
+
+                byte[] temp = new byte[_maskData.Length];
+                _maskData.CopyTo(temp, 0);
+                byte[] componentData = new byte[Width * Height];
+                ParseComponent(0, temp, componentData);
+
+                int pixelIndex = 0;
+                image.ProcessPixelRows(accessor =>
+                {
+                    for (int y = 0; y < accessor.Height; y++)
+                    {
+                        Span<Rgba32> pixelRow = accessor.GetRowSpan(y);
+                        for (int x = 0; x < pixelRow.Length; x++)
+                        {
+                            pixelRow[x].A = componentData[pixelIndex++];
+                        }
+                    }
+                });
             }
             else
             {
