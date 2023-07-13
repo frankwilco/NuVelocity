@@ -16,10 +16,6 @@ namespace Velocity
 
         public bool IsCompressed { get; private set; }
 
-        private int _rawSize;
-        private int _deflatedSize;
-        private int _inflatedSize;
-
         private byte[] _data;
         private byte[] _maskData;
 
@@ -34,17 +30,17 @@ namespace Velocity
             IsCompressed = reader.ReadBoolean();
             if (IsCompressed)
             {
-                _rawSize = reader.ReadByte();
+                int _rawSize = reader.ReadByte();
                 if (_rawSize != kFlagCompressed)
                 {
                     throw new InvalidDataException();
                 }
-                _deflatedSize = reader.ReadInt32();
-                _inflatedSize = reader.ReadInt32();
+                int deflatedSize = reader.ReadInt32();
+                int inflatedSize = reader.ReadInt32();
 
                 var inflater = new Inflater();
-                inflater.SetInput(reader.ReadBytes(_deflatedSize));
-                _data = new byte[_inflatedSize];
+                inflater.SetInput(reader.ReadBytes(deflatedSize));
+                _data = new byte[inflatedSize];
                 if (inflater.Inflate(_data) == 0)
                 {
                     throw new InvalidDataException();
@@ -55,7 +51,7 @@ namespace Velocity
             }
             else
             {
-                _rawSize = reader.ReadInt32();
+                int _rawSize = reader.ReadInt32();
                 _data = reader.ReadBytes(_rawSize);
                 int distanceToEof = (int)(stream.Length - stream.Position);
                 if (distanceToEof <= 0)
