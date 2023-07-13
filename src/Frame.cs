@@ -163,5 +163,10 @@ namespace Velocity
             }
             return image;
         }
+
+        public byte[] ToBytes()
+        {
+            return _data;
+        }
     }
 }
