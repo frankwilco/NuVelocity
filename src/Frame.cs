@@ -17,7 +17,7 @@ namespace Velocity
         public bool IsCompressed { get; private set; }
 
         private byte[] _data;
-        private byte[] _maskData;
+        private byte[] _rawMaskData;
 
         public int Width { get; private set; }
         public int Height { get; private set; }
@@ -64,35 +64,10 @@ namespace Velocity
 
                 var inflater = new Inflater();
                 inflater.SetInput(reader.ReadBytes(distanceToEof - 5));
-                _maskData = new byte[maskInflatedSize];
-                if (inflater.Inflate(_maskData) == 0)
+                _rawMaskData = new byte[maskInflatedSize];
+                if (inflater.Inflate(_rawMaskData) == 0)
                 {
                     throw new InvalidDataException();
-                }
-            }
-        }
-
-        private void ParseComponent(int layer, byte[] input, byte[] buffer)
-        {
-            int rawIndex = layer * Width * Height;
-            int pixelIndex = 0;
-
-            for (int row = 0; row < Height; row++)
-            {
-                for (int column = 0; column < Width; column++)
-                {
-                    if (row == 0 && column == 0)
-                    {
-                        // The base pixel is used as-is.
-                    }
-                    else
-                    {
-                        input[rawIndex] += input[rawIndex - 1];
-                    }
-                    buffer[pixelIndex] = input[rawIndex];
-
-                    pixelIndex++;
-                    rawIndex++;
                 }
             }
         }
@@ -102,27 +77,9 @@ namespace Velocity
             Image<Rgba32> image;
             if (!IsCompressed)
             {
-                image = Image.Load<Rgba32>(new ReadOnlySpan<byte>(_data));
+                image = FrameUtils.LoadJpegImage(_data, _rawMaskData);
                 Width = image.Width;
                 Height = image.Height;
-
-                byte[] temp = new byte[_maskData.Length];
-                _maskData.CopyTo(temp, 0);
-                byte[] componentData = new byte[Width * Height];
-                ParseComponent(0, temp, componentData);
-
-                int pixelIndex = 0;
-                image.ProcessPixelRows(accessor =>
-                {
-                    for (int y = 0; y < accessor.Height; y++)
-                    {
-                        Span<Rgba32> pixelRow = accessor.GetRowSpan(y);
-                        for (int x = 0; x < pixelRow.Length; x++)
-                        {
-                            pixelRow[x].A = componentData[pixelIndex++];
-                        }
-                    }
-                });
             }
             else
             {
@@ -135,7 +92,7 @@ namespace Velocity
                 for (int layer = 0; layer < 4; layer++)
                 {
                     byte[] componentData = new byte[Width * Height];
-                    ParseComponent(layer, temp, componentData);
+                    FrameUtils.ParseComponent(layer, temp, componentData, Width, Height);
 
                     for (int pixelIndex = 0; pixelIndex < pixelData.Length; pixelIndex++)
                     {
