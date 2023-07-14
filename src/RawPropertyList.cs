@@ -9,6 +9,7 @@
         {
             Parent = parent;
             Properties = new List<RawProperty>();
+            Value = Properties;
         }
 
         public RawPropertyList Parent { get; protected set; }
