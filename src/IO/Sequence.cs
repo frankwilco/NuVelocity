@@ -1,6 +1,6 @@
 ﻿using ICSharpCode.SharpZipLib.Zip.Compression;
 
-namespace Velocity
+namespace NuVelocity.IO
 {
     public class Sequence
     {

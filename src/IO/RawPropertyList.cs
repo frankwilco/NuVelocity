@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace Velocity
+namespace NuVelocity.IO
 {
     public class RawPropertyList : RawProperty
     {

@@ -3,7 +3,7 @@ using SixLabors.ImageSharp.Formats;
 using System.Net.Http.Headers;
 using System.Runtime.Serialization.Formatters;
 
-namespace Velocity
+namespace NuVelocity.IO
 {
     public class Frame
     {

@@ -1,6 +1,6 @@
 ﻿using System.Xml.Linq;
 
-namespace Velocity
+namespace NuVelocity.IO
 {
     internal static class FrameUtils
     {

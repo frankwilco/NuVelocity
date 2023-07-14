@@ -1,4 +1,4 @@
-﻿namespace Velocity
+﻿namespace NuVelocity.IO
 {
     public class RawProperty
     {
