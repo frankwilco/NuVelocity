@@ -17,5 +17,10 @@
         public string Name { get; protected set; }
         public string Description { get; protected set; }
         public object Value { get; protected set; }
+
+        public override string ToString()
+        {
+            return $"{Name}={Value}";
+        }
     }
 }

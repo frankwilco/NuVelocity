@@ -1,4 +1,6 @@
-﻿namespace Velocity
+﻿using System.Text;
+
+namespace Velocity
 {
     public class RawPropertyList : RawProperty
     {
@@ -66,8 +68,8 @@
                     }
                     else
                     {
-                    currentList = currentList.Parent;
-                }
+                        currentList = currentList.Parent;
+                    }
                 }
                 else if (line.Contains('='))
                 {
@@ -94,6 +96,44 @@
             using MemoryStream stream = new MemoryStream(bytes);
             List<RawPropertyList> rootList = FromStream(stream);
             return rootList;
+        }
+
+        internal StringBuilder Serialize(StringBuilder builder, int depth = 0)
+        {
+            builder.Append('\t', depth);
+            builder.AppendLine(ToString());
+            builder.Append('\t', depth);
+            builder.AppendLine("{");
+
+            foreach (var property in Properties)
+            {
+                if (property is RawPropertyList propertyList)
+                {
+                    propertyList.Serialize(builder, depth + 1);
+                    continue;
+                }
+                builder.Append('\t', depth + 1);
+                builder.AppendLine(property.ToString());
+            }
+
+            builder.Append('\t', depth);
+            builder.AppendLine("}");
+
+            return builder;
+        }
+
+        public string Serialize()
+        {
+            return Serialize(new StringBuilder()).ToString();
+        }
+
+        public override string ToString()
+        {
+            if (!string.IsNullOrWhiteSpace(Description))
+            {
+                return $"{Name}={Description}";
+            }
+            return Name;
         }
     }
 }
