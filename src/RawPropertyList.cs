@@ -15,8 +15,10 @@
         public RawPropertyList Parent { get; protected set; }
         public List<RawProperty> Properties { get; protected set; }
 
-        public static RawPropertyList FromStream(Stream stream)
+        public static List<RawPropertyList> FromStream(Stream stream)
         {
+            List<RawPropertyList> lists = new();
+
             using StreamReader reader = new(stream);
             RawPropertyList rootList = new();
             string className = "";
@@ -54,7 +56,18 @@
                 }
                 else if (line == "}")
                 {
+                    if (currentList.Parent == null)
+                    {
+                        lists.Add(currentList);
+                        className = "";
+                        rootList = new();
+                        currentList = rootList;
+                        lastProperty = null;
+                    }
+                    else
+                    {
                     currentList = currentList.Parent;
+                }
                 }
                 else if (line.Contains('='))
                 {
@@ -73,13 +86,13 @@
                 }
             }
 
-            return rootList;
+            return lists;
         }
 
-        public static RawPropertyList FromBytes(byte[] bytes)
+        public static List<RawPropertyList> FromBytes(byte[] bytes)
         {
             using MemoryStream stream = new MemoryStream(bytes);
-            RawPropertyList rootList = FromStream(stream);
+            List<RawPropertyList> rootList = FromStream(stream);
             return rootList;
         }
     }
