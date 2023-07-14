@@ -53,14 +53,53 @@ namespace Velocity
 
             if (rawMaskData != null)
             {
-                byte[] maskDataCopy = new byte[rawMaskData.Length];
-                rawMaskData.CopyTo(maskDataCopy, 0);
+                byte[] maskData = new byte[rawMaskData.Length];
+                rawMaskData.CopyTo(maskData, 0);
                 byte[] componentData = new byte[image.Width * image.Height];
-                ParseComponent(0, maskDataCopy, componentData, image.Width, image.Height);
+                ParseComponent(0, maskData, componentData, image.Width, image.Height);
                 image.ProcessPixelRows(MaskFromByteArray(componentData));
             }
 
             return image;
+        }
+
+        internal static Image<Rgba32> LoadLayeredRgbaImage(byte[] rawImageData, int width, int height)
+        {
+            byte[] imageData = new byte[rawImageData.Length];
+            rawImageData.CopyTo(imageData, 0);
+
+            Rgba32[] pixelData = new Rgba32[width * height];
+            Array.Fill(pixelData, new Rgba32());
+
+            for (int layer = 0; layer < 4; layer++)
+            {
+                byte[] componentData = new byte[width * height];
+                ParseComponent(layer, imageData, componentData, width, height);
+
+                for (int pixelIndex = 0; pixelIndex < pixelData.Length; pixelIndex++)
+                {
+                    switch (layer)
+                    {
+                        case 0:
+                            pixelData[pixelIndex].R = componentData[pixelIndex];
+                            break;
+                        case 1:
+                            pixelData[pixelIndex].G = componentData[pixelIndex];
+                            break;
+                        case 2:
+                            pixelData[pixelIndex].B = componentData[pixelIndex];
+                            break;
+                        case 3:
+                            pixelData[pixelIndex].A = componentData[pixelIndex];
+                            break;
+                        default:
+                            throw new InvalidOperationException();
+                    }
+                }
+            }
+
+            return Image.LoadPixelData(
+                new ReadOnlySpan<Rgba32>(pixelData), width, height);
         }
     }
 }

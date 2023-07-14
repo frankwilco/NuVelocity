@@ -75,48 +75,15 @@ namespace Velocity
         public Image ToImage()
         {
             Image<Rgba32> image;
-            if (!IsCompressed)
+            if (IsCompressed)
+            {
+                image = FrameUtils.LoadLayeredRgbaImage(_data, Width, Height);
+            }
+            else
             {
                 image = FrameUtils.LoadJpegImage(_data, _rawMaskData);
                 Width = image.Width;
                 Height = image.Height;
-            }
-            else
-            {
-                byte[] temp = new byte[_data.Length];
-                _data.CopyTo(temp, 0);
-
-                Rgba32[] pixelData = new Rgba32[Width * Height];
-                Array.Fill(pixelData, new Rgba32());
-
-                for (int layer = 0; layer < 4; layer++)
-                {
-                    byte[] componentData = new byte[Width * Height];
-                    FrameUtils.ParseComponent(layer, temp, componentData, Width, Height);
-
-                    for (int pixelIndex = 0; pixelIndex < pixelData.Length; pixelIndex++)
-                    {
-                        switch (layer)
-                        {
-                            case 0:
-                                pixelData[pixelIndex].R = componentData[pixelIndex];
-                                break;
-                            case 1:
-                                pixelData[pixelIndex].G = componentData[pixelIndex];
-                                break;
-                            case 2:
-                                pixelData[pixelIndex].B = componentData[pixelIndex];
-                                break;
-                            case 3:
-                                pixelData[pixelIndex].A = componentData[pixelIndex];
-                                break;
-                            default:
-                                throw new InvalidOperationException();
-                        }
-                    }
-                }
-
-                image = Image.LoadPixelData(new ReadOnlySpan<Rgba32>(pixelData), Width, Height);
             }
             return image;
         }
