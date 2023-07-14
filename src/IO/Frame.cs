@@ -9,10 +9,15 @@ namespace NuVelocity.IO
     {
         private const byte kFlagCompressed = 0x01;
 
-        // Possibly: state ID
-        public int Unknown1 { get; private set; }
-        // Possibly: state group
-        public int Unknown2 { get; private set; }
+        // TODO: Seems to be offsets set per byte...
+        // b0 Left/X
+        // b1 ??
+        // b2-b3 no effect
+        public byte[] Unknown1 { get; private set; }
+        // b0 Top/Y
+        // b1 ??
+        // b2-b3 no effect
+        public byte[] Unknown2 { get; private set; }
 
         public bool IsCompressed { get; private set; }
 
@@ -25,8 +30,8 @@ namespace NuVelocity.IO
         public Frame(Stream stream)
         {
             BinaryReader reader = new BinaryReader(stream);
-            Unknown1 = reader.ReadInt32();
-            Unknown2 = reader.ReadInt32();
+            Unknown1 = reader.ReadBytes(4);
+            Unknown2 = reader.ReadBytes(4);
             IsCompressed = reader.ReadBoolean();
             if (IsCompressed)
             {
