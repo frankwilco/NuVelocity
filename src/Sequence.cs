@@ -106,7 +106,78 @@ namespace Velocity
 
         public Image[] ToImages()
         {
-            throw new NotImplementedException();
+            Image spritesheet = ToImage();
+            if (spritesheet == null)
+            {
+                return null;
+            }
+
+            RawPropertyList list = RawPropertyList.FromBytes(_embeddedLists)
+                .First((property) => property.Name == "CSequenceFrameInfoList");
+            var frameInfos = ((RawPropertyList)list.Properties
+                .First((property) => property.Name == "Frame Infos"))
+                .Properties
+                .Where((property) => property.Description == "CFrameInfo")
+                .ToArray();
+
+            Image[] images = new Image[frameInfos.Length];
+
+            for (int i = 0; i < frameInfos.Length; i++)
+            {
+                var frameInfo = frameInfos[i] as RawPropertyList;
+
+                int left = 0;
+                int top = 0;
+                int right = 0;
+                int bottom = 0;
+
+                foreach (var property in frameInfo.Properties)
+                {
+                    int value = int.Parse(property.Value as string);
+                    switch (property.Name)
+                    {
+                        case "Left":
+                            left = value;
+                            break;
+                        case "Top":
+                            top = value;
+                            break;
+                        case "Right":
+                            right = value;
+                            break;
+                        case "Bottom":
+                            bottom = value;
+                            break;
+                        case "UpperLeftXOffset":
+                        case "UpperLeftYOffset":
+                        default:
+                            break;
+                    }
+                }
+
+                Rectangle cropRect = new(left, top, right - left, bottom - top);
+                images[i] = spritesheet.Clone(x => x.Crop(cropRect));
+            }
+
+            return images;
+        }
+
+        public string Serialize()
+        {
+            if (_embeddedLists == null)
+            {
+                return null;
+            }
+
+            RawPropertyList list = RawPropertyList.FromBytes(_embeddedLists)
+                .FirstOrDefault((property) => property.Name == "CSequence", null);
+
+            if (list == null)
+            {
+                return null;
+            }
+
+            return list.Serialize();
         }
     }
 }
