@@ -1,19 +1,21 @@
-﻿using ICSharpCode.SharpZipLib.Zip.Compression;
+﻿using BCnEncoder.Decoder;
+using BCnEncoder.ImageSharp;
+using ICSharpCode.SharpZipLib.Zip.Compression;
 
 namespace NuVelocity.IO
 {
     public class Sequence
     {
-        private const byte kFlagStandard = 0x01;
-        private const byte kFlagHighDefinition = 0x55;
-
-        public int Flags { get; private set; }
+        private const byte kSignatureStandard = 0x01;
 
         public bool IsCompressed { get; private set; }
 
-        internal byte[] _embeddedLists;
-        internal byte[] _sequenceSpriteSheet;
-        internal byte[] _rawMaskData;
+        private bool _isHD;
+        private bool _isImageDds;
+
+        private byte[] _embeddedLists;
+        private byte[] _sequenceSpriteSheet;
+        private byte[] _rawMaskData;
 
         public int Width { get; private set; }
         public int Height { get; private set; }
@@ -21,15 +23,37 @@ namespace NuVelocity.IO
         public Sequence(Stream stream)
         {
             using BinaryReader reader = new(stream);
-            Flags = reader.ReadByte();
-            switch (Flags)
+
+            // Check if the embedded lists are uncompressed.
+            _isHD = !FrameUtils.HasDeflateHeader(reader);
+            if (_isHD)
             {
-                case kFlagStandard:
-                    break;
-                case kFlagHighDefinition:
-                    throw new NotImplementedException();
-                default:
-                    throw new InvalidDataException();
+                int embeddedListsSize = reader.ReadInt32();
+                _embeddedLists = reader.ReadBytes(embeddedListsSize);
+                
+                var ddsProperty = RawList.Properties.First((property) => property.Name == "DDS");
+                _isImageDds = (ddsProperty.Value as string) == "1";
+
+                if (_isImageDds)
+                {
+                    _sequenceSpriteSheet = reader.ReadBytes(
+                        (int)(stream.Length - stream.Position));
+                }
+                else
+                {
+                    byte unknown1 = reader.ReadByte(); // unknown value
+                    int imageSize = reader.ReadInt32();
+                    _sequenceSpriteSheet = reader.ReadBytes(imageSize);
+                    Width = reader.ReadInt32();
+                    Height = reader.ReadInt32();
+                }
+                return;
+            }
+
+            int signature = reader.ReadByte();
+            if (signature != kSignatureStandard)
+            {
+                throw new InvalidDataException();
             }
 
             Inflater inflater = new();
@@ -90,24 +114,30 @@ namespace NuVelocity.IO
                 return null;
             }
 
-            Image<Rgba32> image;
+            if (_isHD)
+            {
+                if (_isImageDds)
+                {
+                    return null;
+                }
+                return FrameUtils.LoadRgbaImage(_sequenceSpriteSheet, Width, Height);
+            }
+
             if (IsCompressed)
             {
-                image = FrameUtils.LoadLayeredRgbaImage(_sequenceSpriteSheet, Width, Height);
+                return FrameUtils.LoadLayeredRgbaImage(_sequenceSpriteSheet, Width, Height);
             }
-            else
-            {
-                image = FrameUtils.LoadJpegImage(_sequenceSpriteSheet, _rawMaskData);
-                Width = image.Width;
-                Height = image.Height;
-            }
+
+            var image = FrameUtils.LoadJpegImage(_sequenceSpriteSheet, _rawMaskData);
+            Width = image.Width;
+            Height = image.Height;
             return image;
         }
 
         public Image[] ToImages()
         {
             Image spritesheet = ToImage();
-            if (spritesheet == null)
+            if (spritesheet == null && !_isImageDds)
             {
                 return null;
             }
@@ -122,6 +152,7 @@ namespace NuVelocity.IO
 
             Image[] images = new Image[frameInfos.Length];
 
+            int pixelsRead = 0;
             for (int i = 0; i < frameInfos.Length; i++)
             {
                 var frameInfo = frameInfos[i] as RawPropertyList;
@@ -156,28 +187,44 @@ namespace NuVelocity.IO
                 }
 
                 Rectangle cropRect = new(left, top, right - left, bottom - top);
+                if (_isImageDds)
+                {
+                    int pixels = cropRect.Width * cropRect.Height;
+                    byte[] buffer = new byte[pixels];
+                    Buffer.BlockCopy(_sequenceSpriteSheet, pixelsRead, buffer, 0, pixels);
+
+                    BcDecoder decoder = new();
+                    images[i] = decoder.DecodeRawToImageRgba32(buffer,
+                                          cropRect.Width,
+                                          cropRect.Height,
+                                          BCnEncoder.Shared.CompressionFormat.Bc3);
+                    pixelsRead += pixels;
+                    continue;
+                }
                 images[i] = spritesheet.Clone(x => x.Crop(cropRect));
             }
 
             return images;
         }
 
-        public string Serialize()
+        private RawPropertyList _properties;
+        public RawPropertyList RawList
         {
-            if (_embeddedLists == null)
+            get
             {
-                return null;
+                if (_embeddedLists == null)
+                {
+                    return null;
+                }
+
+                if (_properties == null)
+                {
+                    _properties = RawPropertyList.FromBytes(_embeddedLists)
+                        .FirstOrDefault((property) => property.Name == "CSequence", null);
+                }
+
+                return _properties;
             }
-
-            RawPropertyList list = RawPropertyList.FromBytes(_embeddedLists)
-                .FirstOrDefault((property) => property.Name == "CSequence", null);
-
-            if (list == null)
-            {
-                return null;
-            }
-
-            return list.Serialize();
         }
     }
 }
