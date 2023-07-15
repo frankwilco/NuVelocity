@@ -101,5 +101,26 @@ namespace NuVelocity.IO
             return Image.LoadPixelData(
                 new ReadOnlySpan<Rgba32>(pixelData), width, height);
         }
+
+        internal static Image<Rgba32> LoadRgbaImage(byte[] imageData, int width, int height)
+        {
+            Rgba32[] pixelData = new Rgba32[width * height];
+
+            int pixelIndex = 0;
+            int dataIndex = 0;
+            while (dataIndex < imageData.Length)
+            {
+                pixelData[pixelIndex] = new Rgba32(
+                    imageData[dataIndex],
+                    imageData[dataIndex + 1],
+                    imageData[dataIndex + 2],
+                    imageData[dataIndex + 3]);
+                dataIndex += 4;
+                pixelIndex++;
+            }
+
+            return Image.LoadPixelData(
+                new ReadOnlySpan<Rgba32>(pixelData), width, height);
+        }
     }
 }

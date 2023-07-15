@@ -7,7 +7,11 @@ namespace NuVelocity.IO
 {
     public class Frame
     {
+        private const ushort kZlibHeader = 0xDA78;
         private const byte kFlagCompressed = 0x01;
+
+        private const int kOffsetToZlibHeader = 9;
+        private const int kOffsetFromZlibHeader = -(kOffsetToZlibHeader + 2);
 
         // TODO: Seems to be offsets set per byte...
         // b0 Left/X
@@ -21,6 +25,7 @@ namespace NuVelocity.IO
 
         public bool IsCompressed { get; private set; }
 
+        private bool _isLayered;
         private byte[] _data;
         private byte[] _rawMaskData;
 
@@ -35,20 +40,32 @@ namespace NuVelocity.IO
             IsCompressed = reader.ReadBoolean();
             if (IsCompressed)
             {
-                int _rawSize = reader.ReadByte();
-                if (_rawSize != kFlagCompressed)
+                stream.Seek(kOffsetToZlibHeader, SeekOrigin.Current);
+                ushort header = reader.ReadUInt16();
+                stream.Seek(kOffsetFromZlibHeader, SeekOrigin.Current);
+                _isLayered = header == kZlibHeader;
+                if (_isLayered)
                 {
-                    throw new InvalidDataException();
-                }
-                int deflatedSize = reader.ReadInt32();
-                int inflatedSize = reader.ReadInt32();
+                    int _rawSize = reader.ReadByte();
+                    if (_rawSize != kFlagCompressed)
+                    {
+                        throw new InvalidDataException();
+                    }
+                    int deflatedSize = reader.ReadInt32();
+                    int inflatedSize = reader.ReadInt32();
 
-                var inflater = new Inflater();
-                inflater.SetInput(reader.ReadBytes(deflatedSize));
-                _data = new byte[inflatedSize];
-                if (inflater.Inflate(_data) == 0)
+                    var inflater = new Inflater();
+                    inflater.SetInput(reader.ReadBytes(deflatedSize));
+                    _data = new byte[inflatedSize];
+                    if (inflater.Inflate(_data) == 0)
+                    {
+                        throw new InvalidDataException();
+                    }
+                }
+                else
                 {
-                    throw new InvalidDataException();
+                    int _rawSize = reader.ReadInt32();
+                    _data = reader.ReadBytes(_rawSize);
                 }
 
                 Width = reader.ReadInt32();
@@ -82,7 +99,14 @@ namespace NuVelocity.IO
             Image<Rgba32> image;
             if (IsCompressed)
             {
-                image = FrameUtils.LoadLayeredRgbaImage(_data, Width, Height);
+                if (_isLayered)
+                {
+                    image = FrameUtils.LoadLayeredRgbaImage(_data, Width, Height);
+                }
+                else
+                {
+                    image = FrameUtils.LoadRgbaImage(_data, Width, Height);
+                }
             }
             else
             {
