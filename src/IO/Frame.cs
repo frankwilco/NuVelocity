@@ -7,11 +7,7 @@ namespace NuVelocity.IO
 {
     public class Frame
     {
-        private const ushort kZlibHeader = 0xDA78;
         private const byte kFlagCompressed = 0x01;
-
-        private const int kOffsetToZlibHeader = 9;
-        private const int kOffsetFromZlibHeader = -(kOffsetToZlibHeader + 2);
 
         // TODO: Seems to be offsets set per byte...
         // b0 Left/X
@@ -40,10 +36,7 @@ namespace NuVelocity.IO
             IsCompressed = reader.ReadBoolean();
             if (IsCompressed)
             {
-                stream.Seek(kOffsetToZlibHeader, SeekOrigin.Current);
-                ushort header = reader.ReadUInt16();
-                stream.Seek(kOffsetFromZlibHeader, SeekOrigin.Current);
-                _isLayered = header == kZlibHeader;
+                _isLayered = FrameUtils.HasDeflateHeader(reader);
                 if (_isLayered)
                 {
                     int _rawSize = reader.ReadByte();

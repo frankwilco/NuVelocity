@@ -1,9 +1,23 @@
-﻿using System.Xml.Linq;
+﻿using ICSharpCode.SharpZipLib.Zip.Compression;
+using System.Buffers.Binary;
 
 namespace NuVelocity.IO
 {
     internal static class FrameUtils
     {
+        private const int kOffsetToDeflateHeader = 9;
+        private const int kOffsetFromDeflateHeader = -(kOffsetToDeflateHeader + 2);
+
+        internal static bool HasDeflateHeader(BinaryReader reader)
+        {
+            reader.BaseStream.Seek(kOffsetToDeflateHeader, SeekOrigin.Current);
+            uint header = BinaryPrimitives.ReverseEndianness(reader.ReadUInt16());
+            reader.BaseStream.Seek(kOffsetFromDeflateHeader, SeekOrigin.Current);
+            // Follow SharpZipLib Inflater's logic for checking the header.
+            return (header % 0x1F == 0) &&
+                ((header & 0x0f00) == (Deflater.DEFLATED << 8));
+        }
+
         internal static void ParseComponent(
             int layer, byte[] input, byte[] buffer, int width, int height)
         {
