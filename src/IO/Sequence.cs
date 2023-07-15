@@ -1,7 +1,6 @@
 ﻿using BCnEncoder.Decoder;
 using BCnEncoder.ImageSharp;
 using ICSharpCode.SharpZipLib.Zip.Compression;
-using System.Xml.XPath;
 
 namespace NuVelocity.IO
 {
@@ -152,20 +151,21 @@ namespace NuVelocity.IO
                 .ToArray();
 
             Image[] images = new Image[frameInfos.Length];
+            Point[] anchors = new Point[frameInfos.Length];
 
             int pixelsRead = 0;
+            int maxWidth = 0;
+            int maxHeight = 0;
             for (int i = 0; i < frameInfos.Length; i++)
             {
-                var frameInfo = frameInfos[i] as RawPropertyList;
-
                 int left = 0;
                 int top = 0;
                 int right = 0;
                 int bottom = 0;
-
                 int anchorX = 0;
                 int anchorY = 0;
 
+                var frameInfo = frameInfos[i] as RawPropertyList;
                 foreach (var property in frameInfo.Properties)
                 {
                     int value = int.Parse(property.Value as string);
@@ -194,6 +194,7 @@ namespace NuVelocity.IO
                     }
                 }
 
+                anchors[i] = new Point(anchorX, anchorY);
                 Rectangle cropRect = new(left, top, right - left, bottom - top);
                 Image image = null;
                 if (_isImageDds)
@@ -214,25 +215,143 @@ namespace NuVelocity.IO
                     image = spritesheet.Clone(x => x.Crop(cropRect));
                 }
 
-                int deltaX = anchorX - (cropRect.Width / 2);
-                int deltaY = anchorY - (cropRect.Height / 2);
+                if (image.Width > maxWidth)
+                {
+                    maxWidth = image.Width;
+                }
+                if (image.Height > maxHeight)
+                {
+                    maxHeight = image.Height;
+                }
 
-                int newWidth = image.Width + (2 * Math.Abs(deltaX));
-                int newHeight = image.Height + (2 * Math.Abs(deltaY));
+                images[i] = image;
+            }
 
+            Point hotSpot = new(maxWidth / 2, maxHeight / 2);
+            for (int i = 0; i < images.Length; i++)
+            {
+                Image image = images[i];
+                Point anchor = anchors[i];
+
+                // Case 1: The image's center is the hot spot location.
+                if ((anchor.X + hotSpot.X) == 0 &&
+                    (anchor.Y + hotSpot.Y) == 0)
+                {
+                    continue;
+                }
+
+                // Case 2: The origin (0,0) is the hot spot location.
+                if (anchor.X == 0 && anchor.Y == 0)
+                {
+                    int deltaX = anchor.X - (image.Width / 2);
+                    int deltaY = anchor.Y - (image.Height / 2);
+                    int newWidth = image.Width + (2 * Math.Abs(deltaX));
+                    int newHeight = image.Height + (2 * Math.Abs(deltaY));
+                    image.Mutate(source =>
+                    {
+                        ResizeOptions options = new()
+                        {
+                            Position = AnchorPositionMode.BottomRight,
+                            Size = new(newWidth, newHeight),
+                            Mode = ResizeMode.BoxPad,
+                            Sampler = KnownResamplers.NearestNeighbor,
+                            PadColor = Color.Transparent
+                        };
+                        source.Resize(options);
+                    });
+                    continue;
+                }
+
+                int resultantX = hotSpot.X + anchor.X;
+                int resultantY = hotSpot.Y + anchor.Y;
+
+                bool padLeft = resultantX < 0;
+                bool padRight = resultantX >= maxWidth;
+                bool padTop = resultantY < 0;
+                bool padBottom = resultantY >= maxHeight;
+                // Case 3: The image's position goes beyond the dimensions
+                // of the largest frame in the sequence.
+                if (padLeft || padRight || padTop || padBottom)
+                {
+                    image.Mutate(source =>
+                    {
+                        int newWidth = image.Width;
+                        int newHeight = image.Height;
+
+                        AnchorPositionMode positionMode = AnchorPositionMode.Center;
+                        if (padLeft)
+                        {
+                            newWidth += Math.Abs(resultantX);
+                            positionMode = AnchorPositionMode.Left;
+                            if (padTop)
+                            {
+                                newHeight += Math.Abs(resultantY);
+                                positionMode = AnchorPositionMode.TopLeft;
+                            }
+                            else if (padBottom)
+                            {
+                                newHeight += Math.Abs(maxHeight - resultantY);
+                                positionMode = AnchorPositionMode.BottomLeft;
+                            }
+                        }
+                        else if (padRight)
+                        {
+                            newWidth += Math.Abs(maxWidth - resultantX);
+                            positionMode = AnchorPositionMode.Right;
+                            if (padTop)
+                            {
+                                newHeight += Math.Abs(resultantY);
+                                positionMode = AnchorPositionMode.TopRight;
+                            }
+                            else if (padBottom)
+                            {
+                                newHeight += Math.Abs(maxHeight - resultantY);
+                                positionMode = AnchorPositionMode.BottomRight;
+                            }
+                        }
+                        else if (padTop)
+                        {
+                            newHeight += Math.Abs(resultantY);
+                            positionMode = AnchorPositionMode.Top;
+                        }
+                        else if (padBottom)
+                        {
+                            newHeight += Math.Abs(maxHeight - resultantY);
+                            positionMode = AnchorPositionMode.Bottom;
+                        }
+
+                        ResizeOptions options = new()
+                        {
+                            Position = positionMode,
+                            Size = new(newWidth, newHeight),
+                            Mode = ResizeMode.BoxPad,
+                            Sampler = KnownResamplers.NearestNeighbor,
+                            PadColor = Color.Transparent
+                        };
+                        source.Resize(options);
+                    });
+                    continue;
+                }
+
+                // Case 4: The image's position should be adjusted relative
+                // to the hot spot location of the frame with the largest
+                // dimensions in the sequence.
                 image.Mutate(source =>
                 {
-                    ResizeOptions options = new ResizeOptions
+                    ResizeOptions options = new()
                     {
-                        Position = AnchorPositionMode.BottomRight,
-                        Size = new Size(newWidth, newHeight),
-                        Mode = ResizeMode.BoxPad,
+                        Size = new Size(maxWidth, maxHeight),
+                        Mode = ResizeMode.Manual,
                         Sampler = KnownResamplers.NearestNeighbor,
-                        PadColor = default
+                        PadColor = Color.Transparent,
+                        TargetRectangle = new Rectangle(
+                            resultantX,
+                            resultantY,
+                            image.Width,
+                            image.Height)
                     };
                     source.Resize(options);
                 });
-                images[i] = image;
             }
 
             return images;
