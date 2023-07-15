@@ -1,6 +1,7 @@
 ﻿using BCnEncoder.Decoder;
 using BCnEncoder.ImageSharp;
 using ICSharpCode.SharpZipLib.Zip.Compression;
+using System.Xml.XPath;
 
 namespace NuVelocity.IO
 {
@@ -13,9 +14,9 @@ namespace NuVelocity.IO
         private bool _isHD;
         private bool _isImageDds;
 
-        private byte[] _embeddedLists;
-        private byte[] _sequenceSpriteSheet;
-        private byte[] _rawMaskData;
+        public byte[] _embeddedLists;
+        public byte[] _sequenceSpriteSheet;
+        public byte[] _rawMaskData;
 
         public int Width { get; private set; }
         public int Height { get; private set; }
@@ -162,6 +163,9 @@ namespace NuVelocity.IO
                 int right = 0;
                 int bottom = 0;
 
+                int anchorX = 0;
+                int anchorY = 0;
+
                 foreach (var property in frameInfo.Properties)
                 {
                     int value = int.Parse(property.Value as string);
@@ -180,13 +184,18 @@ namespace NuVelocity.IO
                             bottom = value;
                             break;
                         case "UpperLeftXOffset":
+                            anchorX = value;
+                            break;
                         case "UpperLeftYOffset":
+                            anchorY = value;
+                            break;
                         default:
                             break;
                     }
                 }
 
                 Rectangle cropRect = new(left, top, right - left, bottom - top);
+                Image image = null;
                 if (_isImageDds)
                 {
                     int pixels = cropRect.Width * cropRect.Height;
@@ -194,14 +203,36 @@ namespace NuVelocity.IO
                     Buffer.BlockCopy(_sequenceSpriteSheet, pixelsRead, buffer, 0, pixels);
 
                     BcDecoder decoder = new();
-                    images[i] = decoder.DecodeRawToImageRgba32(buffer,
+                    image = decoder.DecodeRawToImageRgba32(buffer,
                                           cropRect.Width,
                                           cropRect.Height,
                                           BCnEncoder.Shared.CompressionFormat.Bc3);
                     pixelsRead += pixels;
-                    continue;
                 }
-                images[i] = spritesheet.Clone(x => x.Crop(cropRect));
+                else
+                {
+                    image = spritesheet.Clone(x => x.Crop(cropRect));
+                }
+
+                int deltaX = anchorX - (cropRect.Width / 2);
+                int deltaY = anchorY - (cropRect.Height / 2);
+
+                int newWidth = image.Width + (2 * Math.Abs(deltaX));
+                int newHeight = image.Height + (2 * Math.Abs(deltaY));
+
+                image.Mutate(source =>
+                {
+                    ResizeOptions options = new ResizeOptions
+                    {
+                        Position = AnchorPositionMode.BottomRight,
+                        Size = new Size(newWidth, newHeight),
+                        Mode = ResizeMode.BoxPad,
+                        Sampler = KnownResamplers.NearestNeighbor,
+                        PadColor = default
+                    };
+                    source.Resize(options);
+                });
+                images[i] = image;
             }
 
             return images;
