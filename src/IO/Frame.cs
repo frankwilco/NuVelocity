@@ -9,15 +9,7 @@ namespace NuVelocity.IO
     {
         private const byte kFlagCompressed = 0x01;
 
-        // TODO: Seems to be offsets set per byte...
-        // b0 Left/X
-        // b1 ??
-        // b2-b3 no effect
-        public byte[] Unknown1 { get; private set; }
-        // b0 Top/Y
-        // b1 ??
-        // b2-b3 no effect
-        public byte[] Unknown2 { get; private set; }
+        public Point Offset { get; private set; }
 
         public bool IsCompressed { get; private set; }
 
@@ -31,8 +23,9 @@ namespace NuVelocity.IO
         public Frame(Stream stream)
         {
             BinaryReader reader = new BinaryReader(stream);
-            Unknown1 = reader.ReadBytes(4);
-            Unknown2 = reader.ReadBytes(4);
+            int offsetX = reader.ReadInt32();
+            int offsetY = reader.ReadInt32();
+            Offset = new(offsetX, offsetY);
             IsCompressed = reader.ReadBoolean();
             if (IsCompressed)
             {
@@ -104,9 +97,20 @@ namespace NuVelocity.IO
             else
             {
                 image = FrameUtils.LoadJpegImage(_data, _rawMaskData);
-                Width = image.Width;
-                Height = image.Height;
+                // FIXME: fix width/height handling, display only.
             }
+
+            Point hotSpot = new(image.Width / 2, image.Height / 2);
+            // The image's center is the hot spot location or
+            // it has no defined offset.
+            if (((Offset.X + hotSpot.X) == 0 && (Offset.Y + hotSpot.Y) == 0)
+                || Offset.X == 0 || Offset.Y == 0)
+            {
+                return image;
+            }
+
+            FrameUtils.OffsetImage(image, Offset);
+
             return image;
         }
 

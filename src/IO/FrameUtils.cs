@@ -136,5 +136,60 @@ namespace NuVelocity.IO
             return Image.LoadPixelData(
                 new ReadOnlySpan<Rgba32>(pixelData), width, height);
         }
+
+        internal static void OffsetImage(Image image, Point offset)
+        {
+            image.Mutate(source =>
+            {
+                int growWidth = offset.X;
+                int growHeight = offset.Y;
+                if (offset.X < 0)
+                {
+                    growWidth = image.Width + (offset.X * 2);
+                }
+                if (offset.Y < 0)
+                {
+                    growHeight = image.Height + (offset.Y * 2);
+                }
+                int newWidth = image.Width + Math.Abs(growWidth);
+                int newHeight = image.Height + Math.Abs(growHeight);
+
+                AnchorPositionMode positionMode = AnchorPositionMode.BottomRight;
+                if (growWidth >= 0)
+                {
+                    positionMode = AnchorPositionMode.Right;
+                    if (growHeight >= 0)
+                    {
+                        positionMode = AnchorPositionMode.BottomRight;
+                    }
+                    else
+                    {
+                        positionMode = AnchorPositionMode.TopRight;
+                    }
+                }
+                else
+                {
+                    positionMode = AnchorPositionMode.Left;
+                    if (growHeight >= 0)
+                    {
+                        positionMode = AnchorPositionMode.BottomLeft;
+                    }
+                    else
+                    {
+                        positionMode = AnchorPositionMode.TopLeft;
+                    }
+                }
+
+                ResizeOptions options = new()
+                {
+                    Position = positionMode,
+                    Size = new(newWidth, newHeight),
+                    Mode = ResizeMode.BoxPad,
+                    Sampler = KnownResamplers.NearestNeighbor,
+                    PadColor = Color.Transparent
+                };
+                source.Resize(options);
+            });
+        }
     }
 }
