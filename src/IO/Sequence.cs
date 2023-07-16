@@ -227,11 +227,19 @@ namespace NuVelocity.IO
                 images[i] = image;
             }
 
+            bool centerHotSpot = ((string)RawList.Properties
+                .First((property) => property.Name == "Center Hot Spot").Value) == "1";
             Point hotSpot = new(maxWidth / 2, maxHeight / 2);
             for (int i = 0; i < images.Length; i++)
             {
                 Image image = images[i];
                 Point anchor = anchors[i];
+
+                if (!centerHotSpot)
+                {
+                    FrameUtils.OffsetImage(image, anchor);
+                    continue;
+                }
 
                 // Case 1: The image's center is the hot spot location.
                 if ((anchor.X + hotSpot.X) == 0 &&
