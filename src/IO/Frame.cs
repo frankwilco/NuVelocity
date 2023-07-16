@@ -104,7 +104,7 @@ namespace NuVelocity.IO
             // The image's center is the hot spot location or
             // it has no defined offset.
             if (((Offset.X + hotSpot.X) == 0 && (Offset.Y + hotSpot.Y) == 0)
-                || Offset.X == 0 || Offset.Y == 0)
+                || (Offset.X == 0 && Offset.Y == 0))
             {
                 return image;
             }
