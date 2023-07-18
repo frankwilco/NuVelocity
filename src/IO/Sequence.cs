@@ -160,6 +160,8 @@ namespace NuVelocity.IO
             int widthEnd = 0;
             int heightStart = 0;
             int heightEnd = 0;
+            Size finalSize = new();
+            Point hotSpot = new();
 
             for (int i = 0; i < frameInfos.Length; i++)
             {
@@ -238,9 +240,14 @@ namespace NuVelocity.IO
                 else
                 {
                     int partWidth = Math.Abs(offset.X);
+                    if (partWidth < image.Width)
+                    {
+                        partWidth = image.Width + (partWidth-(image.Width/2));
+                    }
                     if (partWidth >= widthStart)
                     {
                         widthStart = partWidth;
+                        hotSpot.X = Math.Abs(offset.X);
                     }
                 }
                 if (offset.Y >= 0)
@@ -254,10 +261,21 @@ namespace NuVelocity.IO
                 else
                 {
                     int partHeight = Math.Abs(offset.Y);
+                    if (partHeight < image.Height)
+                    {
+                        partHeight = image.Height + (partHeight-(image.Height/2));
+                    }
                     if (partHeight > heightStart)
                     {
                         heightStart = partHeight;
+                        hotSpot.Y = Math.Abs(offset.Y);
                     }
+                }
+
+                if (i == frameInfos.Length - 1)
+                {
+                    finalSize = new(widthStart + widthEnd,
+                                    heightStart + heightEnd);
                 }
             }
 
@@ -298,27 +316,9 @@ namespace NuVelocity.IO
                 // Case 3: The image's position should be adjusted relative
                 // to the hot spot location of the frame with the largest
                 // dimensions in the sequence.
-                Size finalSize = new(widthStart + widthEnd,
-                                     heightStart + heightEnd);
-                Point hotSpot = new(widthStart, heightStart);
                 int resultantX = hotSpot.X + offset.X;
                 int resultantY = hotSpot.Y + offset.Y;
-                if (offset.X < 0)
-                {
-                    int missingWidth = image.Width + offset.X;
-                    if (missingWidth > 0)
-                    {
-                        finalSize.Width += missingWidth;
-                    }
-                }
-                if (offset.Y < 0)
-                {
-                    int missingHeight = image.Height + offset.Y;
-                    if (missingHeight > 0)
-                    {
-                        finalSize.Height += missingHeight;
-                    }
-                }
+
                 image.Mutate(source =>
                 {
                     ResizeOptions options = new()
