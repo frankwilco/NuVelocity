@@ -149,13 +149,20 @@ namespace NuVelocity.IO
                 .Properties
                 .Where((property) => property.Description == "CFrameInfo")
                 .ToArray();
+            bool centerHotSpot = ((string)RawList.Properties
+                .First((property) => property.Name == "Center Hot Spot").Value) == "1";
 
             Image[] images = new Image[frameInfos.Length];
             Point[] offsets = new Point[frameInfos.Length];
 
             int pixelsRead = 0;
-            Size maxSize = new(0, 0);
-            Point maxOffset = new(0, 0);
+            int widthStart = 0;
+            int widthEnd = 0;
+            int heightStart = 0;
+            int heightEnd = 0;
+            Size finalSize = new();
+            Point hotSpot = new();
+
             for (int i = 0; i < frameInfos.Length; i++)
             {
                 int left = 0;
@@ -213,31 +220,57 @@ namespace NuVelocity.IO
                 {
                     image = spritesheet.Clone(x => x.Crop(cropRect));
                 }
-
-                if (image.Width > maxSize.Width)
-                {
-                    maxSize.Width = image.Width;
-                }
-                if (image.Height > maxSize.Height)
-                {
-                    maxSize.Height = image.Height;
-                }
-
-                Point absOffset = new(Math.Abs(offset.X), Math.Abs(offset.Y));
-                if (absOffset.X > maxOffset.X)
-                {
-                    maxOffset.X = absOffset.X;
-                }
-                if (absOffset.Y > maxOffset.Y)
-                {
-                    maxOffset.Y = absOffset.Y;
-                }
-
                 images[i] = image;
+
+                // Skip tracking real image size if the center of the image
+                // is not the hot spot.
+                if (!centerHotSpot)
+                {
+                    continue;
+                }
+
+                if (offset.X >= 0)
+                {
+                    int partWidth = image.Width + offset.X;
+                    if (partWidth >= widthEnd)
+                    {
+                        widthEnd = partWidth;
+                    }
+                }
+                else
+                {
+                    int partWidth = Math.Abs(offset.X);
+                    if (partWidth >= widthStart)
+                    {
+                        widthStart = partWidth;
+                    }
+                }
+                if (offset.Y >= 0)
+                {
+                    int partHeight = image.Height + offset.Y;
+                    if (partHeight >= heightEnd)
+                    {
+                        heightEnd = partHeight;
+                    }
+                }
+                else
+                {
+                    int partHeight = Math.Abs(offset.Y);
+                    if (partHeight > heightStart)
+                    {
+                        heightStart = partHeight;
+                    }
+                }
+
+                if (i == frameInfos.Length - 1)
+                {
+                    finalSize = new(widthStart + widthEnd,
+                                   heightStart + heightEnd);
+                    hotSpot = new(finalSize.Width / 2,
+                                  finalSize.Height / 2);
+                }
             }
 
-            bool centerHotSpot = ((string)RawList.Properties
-                .First((property) => property.Name == "Center Hot Spot").Value) == "1";
             for (int i = 0; i < images.Length; i++)
             {
                 Image image = images[i];
@@ -275,32 +308,13 @@ namespace NuVelocity.IO
                 // Case 3: The image's position should be adjusted relative
                 // to the hot spot location of the frame with the largest
                 // dimensions in the sequence.
-                /*
-                Size newSize = new(maxSize.Width + maxOffset.X,
-                   maxSize.Height + maxOffset.Y);
-                Point hotSpot = new(newSize.Width / 2,
-                                    newSize.Height / 2);
                 int resultantX = hotSpot.X + offset.X;
                 int resultantY = hotSpot.Y + offset.Y;
-                */
-                Size newSize = new(image.Width + Math.Abs(offset.X),
-                       image.Height + Math.Abs(offset.Y));
-                int resultantX = newSize.Width - image.Width;
-                if (offset.X < 0)
-                {
-                    resultantX += offset.X;
-                }
-                int resultantY = newSize.Height - image.Height;
-                if (offset.Y < 0)
-                {
-                    resultantY += offset.Y;
-                }
-
                 image.Mutate(source =>
                 {
                     ResizeOptions options = new()
                     {
-                        Size = newSize,
+                        Size = finalSize,
                         Mode = ResizeMode.Manual,
                         Sampler = KnownResamplers.NearestNeighbor,
                         PadColor = Color.Transparent,
