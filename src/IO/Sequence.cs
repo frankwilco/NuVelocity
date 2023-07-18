@@ -316,6 +316,32 @@ namespace NuVelocity.IO
                 // Case 3: The image's position should be adjusted relative
                 // to the hot spot location of the frame with the largest
                 // dimensions in the sequence.
+                if (widthStart == 0)
+                {
+                    hotSpot.X = 0;
+                }
+                else if (widthEnd == 0)
+                {
+                    hotSpot.X = widthStart;
+                    int partWidth = Math.Abs(offset.X);
+                    if (partWidth < image.Width)
+                    {
+                        hotSpot.X -= image.Width;
+                    }
+                }
+                if (heightStart == 0)
+                {
+                    hotSpot.Y = 0;
+                }
+                else if (heightEnd == 0)
+                {
+                    hotSpot.Y = heightStart;
+                    int partHeight = Math.Abs(offset.Y);
+                    if (partHeight < image.Height)
+                    {
+                        hotSpot.Y -= image.Height;
+                    }
+                }
                 int resultantX = hotSpot.X + offset.X;
                 int resultantY = hotSpot.Y + offset.Y;
                 image.Mutate(source =>
