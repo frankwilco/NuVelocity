@@ -240,6 +240,10 @@ namespace NuVelocity.IO
                 else
                 {
                     int partWidth = Math.Abs(offset.X);
+                    if (partWidth < image.Width)
+                    {
+                        partWidth += image.Width;
+                    }
                     if (partWidth >= widthStart)
                     {
                         widthStart = partWidth;
@@ -256,6 +260,10 @@ namespace NuVelocity.IO
                 else
                 {
                     int partHeight = Math.Abs(offset.Y);
+                    if (partHeight < image.Height)
+                    {
+                        partHeight += image.Height;
+                    }
                     if (partHeight > heightStart)
                     {
                         heightStart = partHeight;
