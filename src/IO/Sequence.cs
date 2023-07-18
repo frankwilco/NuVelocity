@@ -238,10 +238,6 @@ namespace NuVelocity.IO
 
             bool centerHotSpot = ((string)RawList.Properties
                 .First((property) => property.Name == "Center Hot Spot").Value) == "1";
-            Size newSize = new(maxSize.Width + maxOffset.X,
-                   maxSize.Height + maxOffset.Y);
-            Point hotSpot = new(newSize.Width / 2,
-                                newSize.Height / 2);
             for (int i = 0; i < images.Length; i++)
             {
                 Image image = images[i];
@@ -279,9 +275,27 @@ namespace NuVelocity.IO
                 // Case 3: The image's position should be adjusted relative
                 // to the hot spot location of the frame with the largest
                 // dimensions in the sequence.
-                //hotSpot = (Point)(image.Size / 2);
+                /*
+                Size newSize = new(maxSize.Width + maxOffset.X,
+                   maxSize.Height + maxOffset.Y);
+                Point hotSpot = new(newSize.Width / 2,
+                                    newSize.Height / 2);
                 int resultantX = hotSpot.X + offset.X;
                 int resultantY = hotSpot.Y + offset.Y;
+                */
+                Size newSize = new(image.Width + Math.Abs(offset.X),
+                       image.Height + Math.Abs(offset.Y));
+                int resultantX = newSize.Width - image.Width;
+                if (offset.X < 0)
+                {
+                    resultantX += offset.X;
+                }
+                int resultantY = newSize.Height - image.Height;
+                if (offset.Y < 0)
+                {
+                    resultantY += offset.Y;
+                }
+
                 image.Mutate(source =>
                 {
                     ResizeOptions options = new()
