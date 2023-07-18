@@ -151,19 +151,18 @@ namespace NuVelocity.IO
                 .ToArray();
 
             Image[] images = new Image[frameInfos.Length];
-            Point[] anchors = new Point[frameInfos.Length];
+            Point[] offsets = new Point[frameInfos.Length];
 
             int pixelsRead = 0;
-            int maxWidth = 0;
-            int maxHeight = 0;
+            Size maxSize = new(0, 0);
+            Point maxOffset = new(0, 0);
             for (int i = 0; i < frameInfos.Length; i++)
             {
                 int left = 0;
                 int top = 0;
                 int right = 0;
                 int bottom = 0;
-                int anchorX = 0;
-                int anchorY = 0;
+                Point offset = new(0, 0);
 
                 var frameInfo = frameInfos[i] as RawPropertyList;
                 foreach (var property in frameInfo.Properties)
@@ -184,17 +183,17 @@ namespace NuVelocity.IO
                             bottom = value;
                             break;
                         case "UpperLeftXOffset":
-                            anchorX = value;
+                            offset.X = value;
                             break;
                         case "UpperLeftYOffset":
-                            anchorY = value;
+                            offset.Y = value;
                             break;
                         default:
                             break;
                     }
                 }
 
-                anchors[i] = new Point(anchorX, anchorY);
+                offsets[i] = offset;
                 Rectangle cropRect = new(left, top, right - left, bottom - top);
                 Image image = null;
                 if (_isImageDds)
@@ -215,13 +214,23 @@ namespace NuVelocity.IO
                     image = spritesheet.Clone(x => x.Crop(cropRect));
                 }
 
-                if (image.Width > maxWidth)
+                if (image.Width > maxSize.Width)
                 {
-                    maxWidth = image.Width;
+                    maxSize.Width = image.Width;
                 }
-                if (image.Height > maxHeight)
+                if (image.Height > maxSize.Height)
                 {
-                    maxHeight = image.Height;
+                    maxSize.Height = image.Height;
+                }
+
+                Point absOffset = new(Math.Abs(offset.X), Math.Abs(offset.Y));
+                if (absOffset.X > maxOffset.X)
+                {
+                    maxOffset.X = absOffset.X;
+                }
+                if (absOffset.Y > maxOffset.Y)
+                {
+                    maxOffset.Y = absOffset.Y;
                 }
 
                 images[i] = image;
@@ -229,30 +238,27 @@ namespace NuVelocity.IO
 
             bool centerHotSpot = ((string)RawList.Properties
                 .First((property) => property.Name == "Center Hot Spot").Value) == "1";
-            Point hotSpot = new(maxWidth / 2, maxHeight / 2);
+            Size newSize = new(maxSize.Width + maxOffset.X,
+                   maxSize.Height + maxOffset.Y);
+            Point hotSpot = new(newSize.Width / 2,
+                                newSize.Height / 2);
             for (int i = 0; i < images.Length; i++)
             {
                 Image image = images[i];
-                Point anchor = anchors[i];
+                Point offset = offsets[i];
 
+                // Case 1: Simple image padding if the hot spot is not centered.
                 if (!centerHotSpot)
                 {
-                    FrameUtils.OffsetImage(image, anchor);
-                    continue;
-                }
-
-                // Case 1: The image's center is the hot spot location.
-                if ((anchor.X + hotSpot.X) == 0 &&
-                    (anchor.Y + hotSpot.Y) == 0)
-                {
+                    FrameUtils.OffsetImage(image, offset);
                     continue;
                 }
 
                 // Case 2: The origin (0,0) is the hot spot location.
-                if (anchor.X == 0 && anchor.Y == 0)
+                if (offset.X == 0 && offset.Y == 0)
                 {
-                    int deltaX = anchor.X - (image.Width / 2);
-                    int deltaY = anchor.Y - (image.Height / 2);
+                    int deltaX = offset.X - (image.Width / 2);
+                    int deltaY = offset.Y - (image.Height / 2);
                     int newWidth = image.Width + (2 * Math.Abs(deltaX));
                     int newHeight = image.Height + (2 * Math.Abs(deltaY));
                     image.Mutate(source =>
@@ -270,85 +276,17 @@ namespace NuVelocity.IO
                     continue;
                 }
 
-                int resultantX = hotSpot.X + anchor.X;
-                int resultantY = hotSpot.Y + anchor.Y;
-
-                bool padLeft = resultantX < 0;
-                bool padRight = resultantX >= maxWidth;
-                bool padTop = resultantY < 0;
-                bool padBottom = resultantY >= maxHeight;
-                // Case 3: The image's position goes beyond the dimensions
-                // of the largest frame in the sequence.
-                if (padLeft || padRight || padTop || padBottom)
-                {
-                    image.Mutate(source =>
-                    {
-                        int newWidth = image.Width;
-                        int newHeight = image.Height;
-
-                        AnchorPositionMode positionMode = AnchorPositionMode.Center;
-                        if (padLeft)
-                        {
-                            newWidth += Math.Abs(resultantX);
-                            positionMode = AnchorPositionMode.Left;
-                            if (padTop)
-                            {
-                                newHeight += Math.Abs(resultantY);
-                                positionMode = AnchorPositionMode.TopLeft;
-                            }
-                            else if (padBottom)
-                            {
-                                newHeight += Math.Abs(maxHeight - resultantY);
-                                positionMode = AnchorPositionMode.BottomLeft;
-                            }
-                        }
-                        else if (padRight)
-                        {
-                            newWidth += Math.Abs(maxWidth - resultantX);
-                            positionMode = AnchorPositionMode.Right;
-                            if (padTop)
-                            {
-                                newHeight += Math.Abs(resultantY);
-                                positionMode = AnchorPositionMode.TopRight;
-                            }
-                            else if (padBottom)
-                            {
-                                newHeight += Math.Abs(maxHeight - resultantY);
-                                positionMode = AnchorPositionMode.BottomRight;
-                            }
-                        }
-                        else if (padTop)
-                        {
-                            newHeight += Math.Abs(resultantY);
-                            positionMode = AnchorPositionMode.Top;
-                        }
-                        else if (padBottom)
-                        {
-                            newHeight += Math.Abs(maxHeight - resultantY);
-                            positionMode = AnchorPositionMode.Bottom;
-                        }
-
-                        ResizeOptions options = new()
-                        {
-                            Position = positionMode,
-                            Size = new(newWidth, newHeight),
-                            Mode = ResizeMode.BoxPad,
-                            Sampler = KnownResamplers.NearestNeighbor,
-                            PadColor = Color.Transparent
-                        };
-                        source.Resize(options);
-                    });
-                    continue;
-                }
-
-                // Case 4: The image's position should be adjusted relative
+                // Case 3: The image's position should be adjusted relative
                 // to the hot spot location of the frame with the largest
                 // dimensions in the sequence.
+                //hotSpot = (Point)(image.Size / 2);
+                int resultantX = hotSpot.X + offset.X;
+                int resultantY = hotSpot.Y + offset.Y;
                 image.Mutate(source =>
                 {
                     ResizeOptions options = new()
                     {
-                        Size = new Size(maxWidth, maxHeight),
+                        Size = newSize,
                         Mode = ResizeMode.Manual,
                         Sampler = KnownResamplers.NearestNeighbor,
                         PadColor = Color.Transparent,
