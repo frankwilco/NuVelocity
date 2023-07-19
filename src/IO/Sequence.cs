@@ -151,6 +151,10 @@ namespace NuVelocity.IO
                 .ToArray();
             bool centerHotSpot = ((string)RawList.Properties
                 .First((property) => property.Name == "Center Hot Spot").Value) == "1";
+            int baseXOffset = int.Parse(RawList.Properties
+                .First((property) => property.Name == "X Offset").Value as string);
+            int baseYOffset = int.Parse(RawList.Properties
+                .First((property) => property.Name == "Y Offset").Value as string);
 
             Image[] images = new Image[frameInfos.Length];
             Point[] offsets = new Point[frameInfos.Length];
@@ -164,7 +168,7 @@ namespace NuVelocity.IO
                 int top = 0;
                 int right = 0;
                 int bottom = 0;
-                Point offset = new(0, 0);
+                Point offset = new(baseXOffset, baseYOffset);
 
                 var frameInfo = frameInfos[i] as RawPropertyList;
                 foreach (var property in frameInfo.Properties)
@@ -185,10 +189,10 @@ namespace NuVelocity.IO
                             bottom = value;
                             break;
                         case "UpperLeftXOffset":
-                            offset.X = value;
+                            offset.X += value;
                             break;
                         case "UpperLeftYOffset":
-                            offset.Y = value;
+                            offset.Y += value;
                             break;
                         default:
                             break;
