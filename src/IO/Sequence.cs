@@ -167,12 +167,22 @@ namespace NuVelocity.IO
                 .Properties
                 .Where((property) => property.Name == "Frame Info")
                 .ToArray();
-            bool centerHotSpot = ((string)RawList.Properties
-                .First((property) => property.Name == "Center Hot Spot").Value) == "1";
-            int baseXOffset = int.Parse(RawList.Properties
-                .First((property) => property.Name == "X Offset").Value as string);
-            int baseYOffset = int.Parse(RawList.Properties
-                .First((property) => property.Name == "Y Offset").Value as string);
+            var flags = (SequenceFlags)Enum.Parse(
+                typeof(SequenceFlags),
+                list.Properties.First(
+                    (property) => property.Name == "Flags").Value as string);
+
+            int baseXOffset = 0;
+            int baseYOffset = 0;
+            bool centerHotSpot = flags.HasFlag(SequenceFlags.CenterHotSpot);
+
+            if (RawList != null)
+            {
+                baseXOffset = int.Parse(RawList.Properties
+                    .First((property) => property.Name == "X Offset").Value as string);
+                baseYOffset = int.Parse(RawList.Properties
+                    .First((property) => property.Name == "Y Offset").Value as string);
+            }
 
             Image[] images = new Image[frameInfos.Length];
             Point[] offsets = new Point[frameInfos.Length];
