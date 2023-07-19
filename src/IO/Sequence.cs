@@ -12,6 +12,7 @@ namespace NuVelocity.IO
 
         private bool _isHD;
         private bool _isImageDds;
+        private bool _isEmpty;
 
         public byte[] _embeddedLists;
         public byte[] _sequenceSpriteSheet;
@@ -36,8 +37,16 @@ namespace NuVelocity.IO
 
                 if (_isImageDds)
                 {
-                    _sequenceSpriteSheet = reader.ReadBytes(
-                        (int)(stream.Length - stream.Position));
+                    long distanceToEof = stream.Length - stream.Position;
+                    if (distanceToEof == 0)
+                    {
+                        _isEmpty = true;
+                    }
+                    else
+                    {
+                        _sequenceSpriteSheet = reader.ReadBytes(
+                            (int)distanceToEof);
+                    }
                 }
                 else
                 {
@@ -71,6 +80,7 @@ namespace NuVelocity.IO
             if (reader.PeekChar() == -1)
             {
                 // No sprite sheet data. This is probably an empty sequence.
+                _isEmpty = true;
                 return;
             }
 
@@ -111,6 +121,10 @@ namespace NuVelocity.IO
         {
             if (_sequenceSpriteSheet == null)
             {
+                if (_isEmpty)
+                {
+                    return new Image<Rgba32>(1, 1);
+                }
                 return null;
             }
 
@@ -141,13 +155,17 @@ namespace NuVelocity.IO
             {
                 return null;
             }
+            if (_isEmpty)
+            {
+                return new Image[1] { spritesheet };
+            }
 
             RawPropertyList list = RawPropertyList.FromBytes(_embeddedLists)
                 .First((property) => property.Name == "CSequenceFrameInfoList");
             var frameInfos = ((RawPropertyList)list.Properties
                 .First((property) => property.Name == "Frame Infos"))
                 .Properties
-                .Where((property) => property.Description == "CFrameInfo")
+                .Where((property) => property.Name == "Frame Info")
                 .ToArray();
             bool centerHotSpot = ((string)RawList.Properties
                 .First((property) => property.Name == "Center Hot Spot").Value) == "1";
@@ -171,6 +189,14 @@ namespace NuVelocity.IO
                 Point offset = new(baseXOffset, baseYOffset);
 
                 var frameInfo = frameInfos[i] as RawPropertyList;
+                // Represent empty frames with a 1x1 transparent image.
+                if (frameInfo == null)
+                {
+                    images[i] = new Image<Rgba32>(1, 1);
+                    offsets[i] = new Point(0, 0);
+                    continue;
+                }
+
                 foreach (var property in frameInfo.Properties)
                 {
                     int value = int.Parse(property.Value as string);
