@@ -156,13 +156,8 @@ namespace NuVelocity.IO
             Point[] offsets = new Point[frameInfos.Length];
 
             int pixelsRead = 0;
-            int widthStart = 0;
-            int widthEnd = 0;
-            int heightStart = 0;
-            int heightEnd = 0;
-            Size finalSize = new();
+            Size maxSize = new();
             Point hotSpot = new();
-
             for (int i = 0; i < frameInfos.Length; i++)
             {
                 int left = 0;
@@ -222,60 +217,32 @@ namespace NuVelocity.IO
                 }
                 images[i] = image;
 
-                // Skip tracking real image size if the center of the image
-                // is not the hot spot.
                 if (!centerHotSpot)
                 {
                     continue;
                 }
 
-                if (offset.X >= 0)
+                float deltaX = offset.X - (image.Width / 2f);
+                float deltaY = offset.Y - (image.Height / 2f);
+                float newWidth = image.Width + (2 * Math.Abs(deltaX));
+                float newHeight = image.Height + (2 * Math.Abs(deltaY));
+                if (offset.X > 0)
                 {
-                    int partWidth = image.Width + offset.X;
-                    if (partWidth >= widthEnd)
-                    {
-                        widthEnd = partWidth;
-                    }
+                    newWidth += image.Width * 2;
                 }
-                else
+                if (newWidth >= maxSize.Width)
                 {
-                    int partWidth = Math.Abs(offset.X);
-                    if (partWidth < image.Width)
-                    {
-                        partWidth = image.Width + (partWidth-(image.Width/2));
-                    }
-                    if (partWidth >= widthStart)
-                    {
-                        widthStart = partWidth;
-                        hotSpot.X = Math.Abs(offset.X);
-                    }
+                    maxSize.Width = (int)newWidth;
+                    hotSpot.X = maxSize.Width / 2;
                 }
-                if (offset.Y >= 0)
+                if (offset.Y > 0)
                 {
-                    int partHeight = image.Height + offset.Y;
-                    if (partHeight >= heightEnd)
-                    {
-                        heightEnd = partHeight;
-                    }
+                    newHeight += image.Height * 2;
                 }
-                else
+                if (newHeight >= maxSize.Height)
                 {
-                    int partHeight = Math.Abs(offset.Y);
-                    if (partHeight < image.Height)
-                    {
-                        partHeight = image.Height + (partHeight-(image.Height/2));
-                    }
-                    if (partHeight > heightStart)
-                    {
-                        heightStart = partHeight;
-                        hotSpot.Y = Math.Abs(offset.Y);
-                    }
-                }
-
-                if (i == frameInfos.Length - 1)
-                {
-                    finalSize = new(widthStart + widthEnd,
-                                    heightStart + heightEnd);
+                    maxSize.Height = (int)newHeight;
+                    hotSpot.Y = maxSize.Height / 2;
                 }
             }
 
@@ -291,29 +258,7 @@ namespace NuVelocity.IO
                     continue;
                 }
 
-                // Case 2: The origin (0,0) is the hot spot location.
-                if (offset.X == 0 && offset.Y == 0)
-                {
-                    int deltaX = offset.X - (image.Width / 2);
-                    int deltaY = offset.Y - (image.Height / 2);
-                    int newWidth = image.Width + (2 * Math.Abs(deltaX));
-                    int newHeight = image.Height + (2 * Math.Abs(deltaY));
-                    image.Mutate(source =>
-                    {
-                        ResizeOptions options = new()
-                        {
-                            Position = AnchorPositionMode.BottomRight,
-                            Size = new(newWidth, newHeight),
-                            Mode = ResizeMode.BoxPad,
-                            Sampler = KnownResamplers.NearestNeighbor,
-                            PadColor = Color.Transparent
-                        };
-                        source.Resize(options);
-                    });
-                    continue;
-                }
-
-                // Case 3: The image's position should be adjusted relative
+                // Case 2: The image's position should be adjusted relative
                 // to the hot spot location of the frame with the largest
                 // dimensions in the sequence.
                 int resultantX = hotSpot.X + offset.X;
@@ -323,7 +268,7 @@ namespace NuVelocity.IO
                 {
                     ResizeOptions options = new()
                     {
-                        Size = finalSize,
+                        Size = maxSize,
                         Mode = ResizeMode.Manual,
                         Sampler = KnownResamplers.NearestNeighbor,
                         PadColor = Color.Transparent,
