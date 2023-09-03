@@ -1,5 +1,6 @@
 ﻿namespace NuVelocity.IO
 {
+    [Flags]
     public enum SequenceFlags
     {
         CenterHotSpot       = 1 << 0,
