@@ -101,11 +101,16 @@ namespace NuVelocity.IO
                 // FIXME: fix width/height handling, display only.
             }
 
-            RawProperty centerHotSpotProp = RawList.Properties
-                .FirstOrDefault((property) => property.Name == "Center Hot Spot", null);
-            bool centerHotSpot = centerHotSpotProp == null
-                ? false
-                : ((string)centerHotSpotProp.Value) == "1";
+            bool centerHotSpot = false;
+            if (RawList != null)
+            {
+                RawProperty centerHotSpotProp = RawList.Properties
+                    .FirstOrDefault((property) => property.Name == "Center Hot Spot", null);
+                if (centerHotSpotProp != null)
+                {
+                    centerHotSpot = ((string)centerHotSpotProp.Value) == "1";
+                }
+            }
 
             Size size = new(image.Width, image.Height);
             if (centerHotSpot)
