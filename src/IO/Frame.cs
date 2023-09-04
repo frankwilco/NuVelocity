@@ -1,5 +1,6 @@
 ﻿using ICSharpCode.SharpZipLib.Zip.Compression;
 using SixLabors.ImageSharp.Formats;
+using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Runtime.Serialization.Formatters;
 
@@ -100,16 +101,67 @@ namespace NuVelocity.IO
                 // FIXME: fix width/height handling, display only.
             }
 
-            Point hotSpot = new(image.Width / 2, image.Height / 2);
-            // The image's center is the hot spot location or
-            // it has no defined offset.
-            if (((Offset.X + hotSpot.X) == 0 && (Offset.Y + hotSpot.Y) == 0)
-                || (Offset.X == 0 && Offset.Y == 0))
+            RawProperty centerHotSpotProp = RawList.Properties
+                .FirstOrDefault((property) => property.Name == "Center Hot Spot", null);
+            bool centerHotSpot = centerHotSpotProp == null
+                ? false
+                : ((string)centerHotSpotProp.Value) == "1";
+
+            Size size = new(image.Width, image.Height);
+            if (centerHotSpot)
             {
-                return image;
+                float deltaX = Offset.X - (image.Width / 2f);
+                float deltaY = Offset.Y - (image.Height / 2f);
+                float newWidth = image.Width + (2 * Math.Abs(deltaX));
+                float newHeight = image.Height + (2 * Math.Abs(deltaY));
+                if (Offset.X > 0)
+                {
+                    newWidth += image.Width * 2;
+                }
+                if (Offset.Y > 0)
+                {
+                    newHeight += image.Height * 2;
+                }
+                size.Width = (int)newWidth;
+                size.Height = (int)newHeight;
             }
 
-            FrameUtils.OffsetImage(image, Offset);
+            Point hotSpot = new(size.Width / 2, size.Height / 2);
+            if (centerHotSpot)
+            {
+                int resultantX = hotSpot.X + Offset.X;
+                int resultantY = hotSpot.Y + Offset.Y;
+                image.Mutate(source =>
+                {
+                    ResizeOptions options = new()
+                    {
+                        Size = size,
+                        Mode = ResizeMode.Manual,
+                        Sampler = KnownResamplers.NearestNeighbor,
+                        PadColor = Color.Transparent,
+                        TargetRectangle = new Rectangle(
+                            resultantX,
+                            resultantY,
+                            image.Width,
+                            image.Height)
+                    };
+                    source.Resize(options);
+                });
+            }
+            else
+            {
+                // The image's center is the hot spot location or
+                // it has no defined offset.
+                if (((Offset.X + hotSpot.X) == 0 && (Offset.Y + hotSpot.Y) == 0)
+                    || (Offset.X == 0 && Offset.Y == 0))
+                {
+                    return image;
+                }
+                else
+                {
+                    FrameUtils.OffsetImage(image, Offset);
+                }
+            }
 
             return image;
         }
@@ -118,5 +170,16 @@ namespace NuVelocity.IO
         {
             return _data;
         }
+
+        public RawPropertyList RawList { get; private set; }
+        public void ReadPropertiesFromStream(Stream stream)
+        {
+            byte[] data = new byte[stream.Length];
+            stream.Read(data, 0, data.Length);
+
+            RawList = RawPropertyList.FromBytes(data)
+                .FirstOrDefault((property) => property.Name == "CStandAloneFrame", null);
+        }
+
     }
 }
