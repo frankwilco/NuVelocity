@@ -257,27 +257,33 @@ namespace NuVelocity.IO
                 }
                 images[i] = image;
 
+                float newWidth = 0;
+                float newHeight = 0;
                 if (!centerHotSpot)
                 {
-                    continue;
+                    FrameUtils.OffsetImage(image, offset);
+                    newWidth = image.Width;
+                    newHeight = image.Height;
                 }
-
-                float deltaX = offset.X - (image.Width / 2f);
-                float deltaY = offset.Y - (image.Height / 2f);
-                float newWidth = image.Width + (2 * Math.Abs(deltaX));
-                float newHeight = image.Height + (2 * Math.Abs(deltaY));
-                if (offset.X > 0)
+                else
                 {
-                    newWidth += image.Width * 2;
+                    float deltaX = offset.X - (image.Width / 2f);
+                    float deltaY = offset.Y - (image.Height / 2f);
+                    newWidth = image.Width + (2 * Math.Abs(deltaX));
+                    newHeight = image.Height + (2 * Math.Abs(deltaY));
+                    if (offset.X > 0)
+                    {
+                        newWidth += image.Width * 2;
+                    }
+                    if (offset.Y > 0)
+                    {
+                        newHeight += image.Height * 2;
+                    }
                 }
                 if (newWidth >= maxSize.Width)
                 {
                     maxSize.Width = (int)newWidth;
                     hotSpot.X = maxSize.Width / 2;
-                }
-                if (offset.Y > 0)
-                {
-                    newHeight += image.Height * 2;
                 }
                 if (newHeight >= maxSize.Height)
                 {
@@ -292,17 +298,17 @@ namespace NuVelocity.IO
                 Point offset = offsets[i];
 
                 // Case 1: Simple image padding if the hot spot is not centered.
-                if (!centerHotSpot)
-                {
-                    FrameUtils.OffsetImage(image, offset);
-                    continue;
-                }
+                int resultantX = 0;
+                int resultantY = 0;
 
                 // Case 2: The image's position should be adjusted relative
                 // to the hot spot location of the frame with the largest
                 // dimensions in the sequence.
-                int resultantX = hotSpot.X + offset.X;
-                int resultantY = hotSpot.Y + offset.Y;
+                if (centerHotSpot)
+                {
+                    resultantX = hotSpot.X + offset.X;
+                    resultantY = hotSpot.Y + offset.Y;
+                }
 
                 image.Mutate(source =>
                 {
