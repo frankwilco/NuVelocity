@@ -30,7 +30,7 @@ namespace NuVelocity.IO
             IsCompressed = reader.ReadBoolean();
             if (IsCompressed)
             {
-                _isLayered = FrameUtils.HasDeflateHeader(reader);
+                _isLayered = FrameUtils.CheckDeflateHeader(reader, false);
                 if (_isLayered)
                 {
                     int _rawSize = reader.ReadByte();

@@ -10,6 +10,7 @@ namespace NuVelocity.IO
 
         public bool IsCompressed { get; private set; }
 
+        private bool _isFont;
         private bool _isHD;
         private bool _isImageDds;
         private bool _isEmpty;
@@ -26,7 +27,15 @@ namespace NuVelocity.IO
             using BinaryReader reader = new(stream);
 
             // Check if the embedded lists are uncompressed.
-            _isHD = !FrameUtils.HasDeflateHeader(reader);
+            bool hasHeader = FrameUtils.CheckDeflateHeader(reader, false);
+            // Check a different location for the deflate header
+            // since it's different for fonts.
+            if (!hasHeader)
+            {
+                _isFont = FrameUtils.CheckDeflateHeader(reader, true);
+                _isHD = !_isFont;
+            }
+
             if (_isHD)
             {
                 int embeddedListsSize = reader.ReadInt32();
@@ -57,6 +66,13 @@ namespace NuVelocity.IO
                     Height = reader.ReadInt32();
                 }
                 return;
+            }
+
+            if (_isFont)
+            {
+                int firstAscii = reader.ReadInt32();
+                int lastAscii = reader.ReadInt32();
+                int lineHeight = reader.ReadInt32();
             }
 
             int signature = reader.ReadByte();
