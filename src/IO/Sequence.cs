@@ -15,9 +15,9 @@ namespace NuVelocity.IO
         private bool _isImageDds;
         private bool _isEmpty;
 
-        public byte[] _embeddedLists;
-        public byte[] _sequenceSpriteSheet;
-        public byte[] _rawMaskData;
+        private byte[] _embeddedLists;
+        private byte[] _sequenceSpriteSheet;
+        private byte[] _rawMaskData;
 
         public int Width { get; private set; }
         public int Height { get; private set; }
@@ -365,6 +365,12 @@ namespace NuVelocity.IO
 
                 return _properties;
             }
+        }
+
+        internal Tuple<byte[], byte[], byte[]> DumpRawData()
+        {
+            return new Tuple<byte[], byte[], byte[]>(
+                _embeddedLists, _sequenceSpriteSheet, _rawMaskData);
         }
     }
 }
