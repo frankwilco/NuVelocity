@@ -171,11 +171,6 @@ namespace NuVelocity.IO
             return image;
         }
 
-        public byte[] ToBytes()
-        {
-            return _data;
-        }
-
         public RawPropertyList RawList { get; private set; }
         public void ReadPropertiesFromStream(Stream stream)
         {
