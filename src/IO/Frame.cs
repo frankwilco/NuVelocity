@@ -186,5 +186,9 @@ namespace NuVelocity.IO
                 .FirstOrDefault((property) => property.Name == "CStandAloneFrame", null);
         }
 
+        internal Tuple<byte[], byte[]> DumpRawData()
+        {
+            return new Tuple<byte[], byte[]>(_data, _rawMaskData);
+        }
     }
 }
