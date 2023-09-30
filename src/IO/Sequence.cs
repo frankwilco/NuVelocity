@@ -309,7 +309,7 @@ namespace NuVelocity.IO
                 sequence.DitherImage = frameInfoList.Flags.HasFlag(
                     SequenceFlags.DoDither);
                 sequence.IsLosslessOld = frameInfoList.Flags.HasFlag(
-                    SequenceFlags.LossLess2);
+                    SequenceFlags.Lossless);
                 sequence.FramesPerSecond = frameInfoList.FramesPerSecond;
                 sequence.BlitType = frameInfoList.BlitTypeEnum;
                 // XXX: Assume maximum image quality.

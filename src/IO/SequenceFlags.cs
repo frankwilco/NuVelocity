@@ -9,7 +9,7 @@
         Use8BitAlpha        = 1 << 3,
         RunLengthEncode     = 1 << 4,
         DoDither            = 1 << 5,
-        LossLess2           = 1 << 6,
+        Lossless            = 1 << 6,
         Unused              = 1 << 7
     }
 }
