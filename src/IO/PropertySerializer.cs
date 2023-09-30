@@ -1,4 +1,7 @@
-﻿using System.Reflection;
+﻿using System.Collections;
+using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
+using System.Runtime.Serialization;
 using System.Text;
 
 namespace NuVelocity.IO
@@ -10,6 +13,109 @@ namespace NuVelocity.IO
             BindingFlags.NonPublic |
             BindingFlags.Instance |
             BindingFlags.Static;
+
+        private static bool SerializeProperty(
+            PropertyInfo prop,
+            StringBuilder builder,
+            object target,
+            int depth,
+            bool ignoreNull = false)
+        {
+            var propAttr = prop.GetCustomAttribute<PropertyAttribute>();
+            object propValue = prop.GetValue(target);
+            // If we're supposed to ignore empty properties, return early.
+            if (ignoreNull && propValue == null)
+            {
+                return false;
+            }
+            // Write property name.
+            builder.Append('\t', depth + 1);
+            builder.Append($"{propAttr.Name}=");
+            // Write property value, if available.
+            if (propValue == null)
+            {
+                builder.AppendLine();
+                return true;
+            }
+            // 1: Write the value's properties if it's marked with the
+            // property root attribute.
+            if (prop.PropertyType.IsDefined(typeof(PropertyRootAttribute)))
+            {
+                if (!Serialize(builder, propValue, depth + 1))
+                {
+                    builder.AppendLine();
+                }
+            }
+            // 2: Write bool values as 0 (false) or 1 (true).
+            else if (prop.PropertyType == typeof(bool))
+            {
+                bool boolValue = (bool)propValue;
+                builder.AppendLine(boolValue ? "1" : "0");
+            }
+            // 3: Write enum values with their friendly name or as an int.
+            else if (prop.PropertyType.IsEnum)
+            {
+                MemberInfo memberInfo = prop.PropertyType
+                    .GetMember(propValue.ToString())[0];
+                // Write the enum value's friendly name.
+                if (memberInfo.IsDefined(typeof(PropertyAttribute)))
+                {
+                    PropertyAttribute enumAttribute = memberInfo
+                        .GetCustomAttribute<PropertyAttribute>();
+                    builder.AppendLine(enumAttribute.Name);
+                    return true;
+                }
+                // Otherwise, write the raw int value of the enum.
+                string enumValue = ((int)propValue).ToString();
+                builder.AppendLine(enumValue);
+            }
+            // 4: Write array values.
+            else if (prop.PropertyType.IsArray)
+            {
+                Array arrayValue = (Array)propValue;
+                // Write property type (Array).
+                builder.AppendLine("Array");
+                builder.Append('\t', depth + 1);
+                builder.AppendLine("{");
+                // Check first if array elements have a property root attribute.
+                // Otherwise, we can't serialize this object without it.
+                Type elemType = prop.PropertyType.GetElementType();
+                if (elemType.IsDefined(typeof(PropertyRootAttribute)))
+                {
+                    var elemAttr = elemType
+                        .GetCustomAttribute<PropertyRootAttribute>();
+                    // Write array element count.
+                    builder.Append('\t', depth + 2);
+                    builder.AppendLine($"Item Count={arrayValue.Length}");
+                    // Write all array elements.
+                    foreach (object item in arrayValue)
+                    {
+                        builder.Append('\t', depth + 2);
+                        builder.Append($"{elemAttr.FriendlyName}=");
+                        // Null elements are still represented. They
+                        // serialize as empty (CObject=).
+                        if (!Serialize(builder, item, depth + 3))
+                        {
+                            builder.AppendLine();
+                        }
+                    }
+                }
+                // Terminate the array.
+                builder.Append('\t', depth + 1);
+                builder.AppendLine("}");
+            }
+            // 5: Write the serialized value from the object.
+            else if (propValue is IPropertySerializable propSerializable)
+            {
+                builder.AppendLine(propSerializable.Serialize());
+            }
+            // 6: Write the string representation (fallback).
+            else
+            {
+                builder.AppendLine(propValue.ToString());
+            }
+            return true;
+        }
 
         private static bool Serialize(
             StringBuilder builder,
@@ -37,16 +143,34 @@ namespace NuVelocity.IO
                 return false;
             }
 
-            // Write the object class name.
             var rootAttr = type.GetCustomAttribute<PropertyRootAttribute>();
+            // Write the value directly if this is a single value property.
+            if (rootAttr.IsSingleValue)
+            {
+                if (target is IPropertySerializable targetSerializable)
+                {
+                    builder.AppendLine(targetSerializable.Serialize());
+                }
+                else
+                {
+                    builder.AppendLine(target.ToString());
+                }
+                return true;
+            }
+            // Write the object class name.
             builder.AppendLine(rootAttr.ClassName);
             builder.Append('\t', depth);
             builder.AppendLine("{");
 
+            StringBuilder builderDynamic = new();
+            int dynamicCount = 0;
+            int dynamicIndex = builder.Length;
+
             // Iterate through all properties.
             foreach (var prop in type.GetProperties(kSearchFlags))
             {
-                // Ignore properties without the property attribute.
+                // Ignore properties without the property attribute
+                // or if the property is marked as dynamic.
                 if (!prop.IsDefined(typeof(PropertyAttribute)))
                 {
                     continue;
@@ -79,90 +203,31 @@ namespace NuVelocity.IO
                     continue;
                 }
 
-                var propAttr = prop.GetCustomAttribute<PropertyAttribute>();
-                object propValue = prop.GetValue(target);
-                // Write property name.
-                builder.Append('\t', depth + 1);
-                builder.Append($"{propAttr.Name}=");
-                // Write property value, if available.
-                if (propValue == null)
+                if (prop.IsDefined(typeof(PropertyDynamicAttribute)))
                 {
-                    builder.AppendLine();
+                    if (SerializeProperty(
+                        prop, builderDynamic, target, depth + 1, true))
+                    {
+                        dynamicCount++;
+                    }
                     continue;
                 }
-                // 1: Write the value's properties if it's marked with the
-                // property root attribute.
-                if (prop.PropertyType.IsDefined(typeof(PropertyRootAttribute)))
-                {
-                    if (!Serialize(builder, propValue, depth + 1))
-                    {
-                        builder.AppendLine();
-                    }
-                }
-                // 2: Write bool values as 0 (false) or 1 (true).
-                else if (prop.PropertyType == typeof(bool))
-                {
-                    bool boolValue = (bool)propValue;
-                    builder.AppendLine(boolValue ? "1" : "0");
-                }
-                // 3: Write enum values with their friendly name or as an int.
-                else if (prop.PropertyType.IsEnum)
-                {
-                    MemberInfo memberInfo = prop.PropertyType
-                        .GetMember(propValue.ToString())[0];
-                    // Write the enum value's friendly name.
-                    if (memberInfo.IsDefined(typeof(PropertyAttribute)))
-                    {
-                        PropertyAttribute enumAttribute = memberInfo
-                            .GetCustomAttribute<PropertyAttribute>();
-                        builder.AppendLine(enumAttribute.Name);
-                        continue;
-                    }
-                    // Otherwise, write the raw int value of the enum.
-                    string enumValue = ((int)propValue).ToString();
-                    builder.AppendLine(enumValue);
-                }
-                // 4: Write array values.
-                else if (prop.PropertyType.IsArray)
-                {
-                    Array arrayValue = (Array)propValue;
-                    // Write property type (Array).
-                    builder.AppendLine("Array");
-                    builder.Append('\t', depth + 1);
-                    builder.AppendLine("{");
-                    // Check first if array elements have a property root attribute.
-                    // Otherwise, we can't serialize this object without it.
-                    Type elemType = prop.PropertyType.GetElementType();
-                    if (elemType.IsDefined(typeof(PropertyRootAttribute)))
-                    {
-                        var elemAttr = elemType
-                            .GetCustomAttribute<PropertyRootAttribute>();
-                        // Write array element count.
-                        builder.Append('\t', depth + 2);
-                        builder.AppendLine($"Item Count={arrayValue.Length}");
-                        // Write all array elements.
-                        foreach (object item in arrayValue)
-                        {
-                            builder.Append('\t', depth + 2);
-                            builder.Append($"{elemAttr.FriendlyName}=");
-                            // Null elements are still represented. They
-                            // serialize as empty (CObject=).
-                            if (!Serialize(builder, item, depth + 3))
-                            {
-                                builder.AppendLine();
-                            }
-                        }
-                    }
-                    // Terminate the array.
-                    builder.Append('\t', depth + 1);
-                    builder.AppendLine("}");
-                }
-                // 5: Write the string representation (fallback).
-                else
-                {
-                    builder.AppendLine(propValue.ToString());
-                }
+
+                SerializeProperty(prop, builder, target, depth);
             }
+
+            if (dynamicCount > 0)
+            {
+                // The following is inserted in reverse order.
+                builder.Insert(dynamicIndex, "}\n");
+                builder.Insert(dynamicIndex, "\t", depth + 1);
+                builder.Insert(dynamicIndex, builderDynamic.ToString());
+                builder.Insert(dynamicIndex, "{\n");
+                builder.Insert(dynamicIndex, "\t", depth + 1);
+                builder.Insert(dynamicIndex, $"Dynamic Properties={dynamicCount}\n");
+                builder.Insert(dynamicIndex, "\t", depth + 1);
+            }
+
             // Terminate the object.
             builder.Append('\t', depth);
             builder.AppendLine("}");
@@ -211,7 +276,8 @@ namespace NuVelocity.IO
         public static bool Deserialize(
             StreamReader reader,
             object target,
-            bool isInner = false)
+            bool isInner = false,
+            string classNameOrValue = "")
         {
             if (reader is null)
             {
@@ -227,6 +293,14 @@ namespace NuVelocity.IO
             if (classAttr == null)
             {
                 return false;
+            }
+
+            if (isInner &&
+                classAttr.IsSingleValue &&
+                target is IPropertySerializable classSerializable)
+            {
+                classSerializable.Deserialize(classNameOrValue);
+                return true;
             }
 
             // Cache property info.
@@ -299,16 +373,18 @@ namespace NuVelocity.IO
                 // 4: End of property list.
                 else if (line == "}")
                 {
+                    if (inArray)
+                    {
+                        arrayPropInfo.SetValue(target, arrayPropValue);
+                        inArray = false;
+                        arrayLengthKnown = false;
+                        arrayPropValue = null;
+                        arrayPropInfo = null;
+                        arrayElemType = null;
+                    }
                     if (isInner)
                     {
                         break;
-                    }
-                    if (inArray)
-                    {
-                        inArray = false;
-                        arrayLengthKnown = false;
-                        arrayPropInfo = null;
-                        arrayElemType = null;
                     }
                     skipAhead = false;
                     continue;
@@ -337,28 +413,32 @@ namespace NuVelocity.IO
                             }
                             arrayPropValue = Array.CreateInstance(
                                 arrayElemType, arrayLength);
-                            arrayPropInfo.SetValue(target, arrayPropValue);
+                            arrayLengthKnown = true;
+                            continue;
+                        }
+
+                        if (arrayPropValue == null)
+                        {
+                            // XXX: Assume single-element array.
+                            arrayPropValue = Array.CreateInstance(
+                                arrayElemType, 1);
                             arrayLengthKnown = true;
                         }
-                        else
+
+                        object arrayElem = null;
+                        if (!isValueEmpty)
                         {
-                            if (arrayPropValue == null)
-                            {
-                                // XXX: Assume single-element array.
-                                arrayPropValue = Array.CreateInstance(
-                                    arrayElemType, 1);
-                                arrayPropInfo.SetValue(target, arrayPropValue);
-                                arrayLengthKnown = true;
-                            }
-                            object arrayElem = null;
-                            if (!isValueEmpty)
-                            {
-                                arrayElem = Activator.CreateInstance(arrayElemType);
-                                Deserialize(reader, arrayElem, true);
-                            }
-                            arrayPropValue.SetValue(arrayElem, arrayIndex);
-                            arrayIndex++;
+                            arrayElem = Activator.CreateInstance(arrayElemType);
+                            Deserialize(reader, arrayElem, true, pair[1]);
                         }
+
+                        arrayPropValue.SetValue(arrayElem, arrayIndex);
+                        arrayIndex++;
+                        continue;
+                    }
+
+                    if (pair[0] == "Dynamic Properties")
+                    {
                         continue;
                     }
 
@@ -386,10 +466,10 @@ namespace NuVelocity.IO
                                 arrayElemType = propType.GetElementType();
                                 arrayIndex = 0;
                                 inArray = true;
-                                break;
+                                continue;
                             }
                             propValue = Activator.CreateInstance(propType);
-                            Deserialize(reader, propValue, true);
+                            Deserialize(reader, propValue, true, pair[1]);
                             break;
                         case TypeCode.Boolean:
                             propValue = pair[1] == "1";
