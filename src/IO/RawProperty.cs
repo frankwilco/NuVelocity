@@ -2,7 +2,7 @@
 {
     public class RawProperty
     {
-        protected const string kDefaultName = "CUnknown";
+        protected const string kDefaultName = "CObject";
         protected const string kDefaultDescription = "";
 
         public RawProperty(string name = kDefaultName,
