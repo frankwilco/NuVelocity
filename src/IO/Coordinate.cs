@@ -1,0 +1,44 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace NuVelocity.IO
+{
+    [PropertyRoot("CCoordinate", "Coordinate", true)]
+    public class Coordinate : IPropertySerializable
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+
+        public string Serialize()
+        {
+            return $"{X},{Y}";
+        }
+
+        public void Deserialize(string context)
+        {
+            if (string.IsNullOrWhiteSpace(context))
+            {
+                return;
+            }
+
+            string[] pair = context.Split(',');
+            if (pair.Length != 2)
+            {
+                return;
+            }
+
+            if (int.TryParse(pair[0], out int xValue))
+            {
+                X = xValue;
+            }
+            if (int.TryParse(pair[1], out int yValue))
+            {
+                Y = yValue;
+            }
+        }
+    }
+}

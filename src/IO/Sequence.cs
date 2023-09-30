@@ -21,6 +21,10 @@ namespace NuVelocity.IO
 
         public EngineSource Source { get; set; }
 
+        [Property("Sequence of Coordinates")]
+        [PropertyDynamic]
+        public SequenceOfCoordinates SequenceOfCoordinates { get; set; }
+
         [Property("Frames Per Second")]
         public int FramesPerSecond { get; set; }
 
