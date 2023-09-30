@@ -2,7 +2,7 @@
 using BCnEncoder.ImageSharp;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 
-namespace NuVelocity.IO
+namespace NuVelocity
 {
     [PropertyRoot("CSequence", "Sequence")]
     public class Sequence
@@ -419,10 +419,10 @@ namespace NuVelocity.IO
                 }
                 else
                 {
-                    float deltaX = offset.X - (image.Width / 2f);
-                    float deltaY = offset.Y - (image.Height / 2f);
-                    newWidth = image.Width + (2 * Math.Abs(deltaX));
-                    newHeight = image.Height + (2 * Math.Abs(deltaY));
+                    float deltaX = offset.X - image.Width / 2f;
+                    float deltaY = offset.Y - image.Height / 2f;
+                    newWidth = image.Width + 2 * Math.Abs(deltaX);
+                    newHeight = image.Height + 2 * Math.Abs(deltaY);
                     if (offset.X > 0)
                     {
                         newWidth += image.Width * 2;

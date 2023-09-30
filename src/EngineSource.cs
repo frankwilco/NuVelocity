@@ -1,4 +1,4 @@
-﻿namespace NuVelocity.IO
+﻿namespace NuVelocity
 {
     public enum EngineSource
     {

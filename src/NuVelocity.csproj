@@ -25,4 +25,8 @@
     <InternalsVisibleTo Include="NuVelocity.Unpacker" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="NuVelocity.Text" />
+  </ItemGroup>
+
 </Project>

@@ -1,4 +1,4 @@
-﻿namespace NuVelocity.IO
+﻿namespace NuVelocity
 {
     [PropertyRoot("CSequenceFrameInfoList", "Sequence Frame Info List")]
     public class SequenceFrameInfoList

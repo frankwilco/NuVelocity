@@ -1,11 +1,11 @@
-﻿namespace NuVelocity.IO
+﻿namespace NuVelocity.Text
 {
     [AttributeUsage(
         AttributeTargets.Property | AttributeTargets.Field,
         Inherited = false, AllowMultiple = false)]
-    public sealed class PropertyExcludeAttribute : Attribute
+    public sealed class PropertyIncludeAttribute : Attribute
     {
-        public PropertyExcludeAttribute(EngineSource source)
+        public PropertyIncludeAttribute(EngineSource source)
         {
             Source = source;
         }

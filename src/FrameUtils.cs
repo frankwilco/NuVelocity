@@ -1,7 +1,7 @@
 ﻿using ICSharpCode.SharpZipLib.Zip.Compression;
 using System.Buffers.Binary;
 
-namespace NuVelocity.IO
+namespace NuVelocity
 {
     internal static class FrameUtils
     {
@@ -16,8 +16,8 @@ namespace NuVelocity.IO
         internal static bool IsDeflateHeader(uint header)
         {
             // Follow SharpZipLib Inflater's logic for checking the header.
-            return (header % 0x1F == 0) &&
-                ((header & 0x0f00) == (Deflater.DEFLATED << 8));
+            return header % 0x1F == 0 &&
+                (header & 0x0f00) == Deflater.DEFLATED << 8;
         }
 
         internal static bool CheckDeflateHeader(BinaryReader reader, bool checkFont)
@@ -171,11 +171,11 @@ namespace NuVelocity.IO
                 int growHeight = offset.Y;
                 if (offset.X < 0)
                 {
-                    growWidth = image.Width + (offset.X * 2);
+                    growWidth = image.Width + offset.X * 2;
                 }
                 if (offset.Y < 0)
                 {
-                    growHeight = image.Height + (offset.Y * 2);
+                    growHeight = image.Height + offset.Y * 2;
                 }
                 int newWidth = image.Width + Math.Abs(growWidth);
                 int newHeight = image.Height + Math.Abs(growHeight);

@@ -1,4 +1,4 @@
-﻿namespace NuVelocity.IO
+﻿namespace NuVelocity.Text
 {
     [AttributeUsage(
         AttributeTargets.Class | AttributeTargets.Struct,

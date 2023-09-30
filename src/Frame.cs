@@ -1,6 +1,6 @@
 ﻿using ICSharpCode.SharpZipLib.Zip.Compression;
 
-namespace NuVelocity.IO
+namespace NuVelocity
 {
     [PropertyRoot("CStandAloneFrame", "Stand Alone Frame")]
     public class Frame
@@ -181,10 +181,10 @@ namespace NuVelocity.IO
 
             if (frame.CenterHotSpot)
             {
-                float deltaX = offset.X - (image.Width / 2f);
-                float deltaY = offset.Y - (image.Height / 2f);
-                float newWidth = image.Width + (2 * Math.Abs(deltaX));
-                float newHeight = image.Height + (2 * Math.Abs(deltaY));
+                float deltaX = offset.X - image.Width / 2f;
+                float deltaY = offset.Y - image.Height / 2f;
+                float newWidth = image.Width + 2 * Math.Abs(deltaX);
+                float newHeight = image.Height + 2 * Math.Abs(deltaY);
                 if (offset.X > 0)
                 {
                     newWidth += image.Width * 2;
@@ -194,8 +194,8 @@ namespace NuVelocity.IO
                     newHeight += image.Height * 2;
                 }
                 Size newSize = new((int)newWidth, (int)newHeight);
-                int resultantX = (newSize.Width / 2) + offset.X;
-                int resultantY = (newSize.Height / 2) + offset.Y;
+                int resultantX = newSize.Width / 2 + offset.X;
+                int resultantY = newSize.Height / 2 + offset.Y;
                 image.Mutate(source =>
                 {
                     ResizeOptions options = new()
@@ -215,8 +215,8 @@ namespace NuVelocity.IO
             }
             // The image's center is the hot spot location or
             // it has no defined offset.
-            else if (((offset.X + (image.Width / 2)) != 0
-                || (offset.Y + (image.Height / 2)) != 0)
+            else if ((offset.X + image.Width / 2 != 0
+                || offset.Y + image.Height / 2 != 0)
                 && (offset.X != 0 || offset.Y != 0))
             {
                 FrameUtils.OffsetImage(image, offset);

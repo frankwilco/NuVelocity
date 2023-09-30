@@ -1,4 +1,4 @@
-﻿namespace NuVelocity.IO
+﻿namespace NuVelocity
 {
     [PropertyRoot("CSequenceOfCoordinates", "Sequence of Coordinates")]
     public class SequenceOfCoordinates

@@ -1,4 +1,4 @@
-﻿namespace NuVelocity.IO
+﻿namespace NuVelocity
 {
     [PropertyRoot("CFrameInfo", "Frame Info")]
     public class FrameInfo

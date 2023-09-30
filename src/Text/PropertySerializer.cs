@@ -1,10 +1,7 @@
-﻿using System.Collections;
-using System.Reflection;
-using System.Reflection.Metadata.Ecma335;
-using System.Runtime.Serialization;
+﻿using System.Reflection;
 using System.Text;
 
-namespace NuVelocity.IO
+namespace NuVelocity.Text
 {
     public static class PropertySerializer
     {
