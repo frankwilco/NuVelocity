@@ -1,37 +1,110 @@
 ﻿using ICSharpCode.SharpZipLib.Zip.Compression;
-using SixLabors.ImageSharp.Formats;
-using System.Diagnostics;
-using System.Net.Http.Headers;
-using System.Runtime.Serialization.Formatters;
 
 namespace NuVelocity.IO
 {
+    [PropertyRoot("CStandAloneFrame", "Stand Alone Frame")]
     public class Frame
     {
         private const byte kFlagCompressed = 0x01;
 
-        public Point Offset { get; private set; }
+        private bool _usedLegacyProperty = false;
 
-        public bool IsCompressed { get; private set; }
+        public Image Texture { get; set; }
 
-        private bool _isLayered;
-        private byte[] _data;
-        private byte[] _rawMaskData;
+        public int Width => Texture.Width;
 
-        public int Width { get; private set; }
-        public int Height { get; private set; }
+        public int Height => Texture.Height;
 
-        public Frame(Stream stream)
+        public EngineSource Source { get; set; }
+
+        [Property("Run Length Encode")]
+        public bool IsRle { get; set; }
+
+        [Property("RLE All Copy")]
+        public bool IsRleAllCopy { get; set; }
+
+        [Property("Crop Color 0")]
+        public bool CropColor0 { get; set; }
+
+        [Property("Do Dither")]
+        public bool DitherImage { get; set; }
+
+        [Property("Change Bit Depth")]
+        [PropertyInclude(EngineSource.From2004)]
+        public bool ChangeBitDepth { get; set; }
+
+        [Property("Loss Less")]
+        [PropertyExclude(EngineSource.From2004)]
+        protected bool IsLosslessOld
         {
-            BinaryReader reader = new BinaryReader(stream);
-            int offsetX = reader.ReadInt32();
-            int offsetY = reader.ReadInt32();
-            Offset = new(offsetX, offsetY);
-            IsCompressed = reader.ReadBoolean();
-            if (IsCompressed)
+            get { return IsLossless; }
+            set
             {
-                _isLayered = FrameUtils.CheckDeflateHeader(reader, false);
-                if (_isLayered)
+                IsLossless = value;
+                _usedLegacyProperty = true;
+            }
+        }
+
+        [Property("Loss Less 2")]
+        [PropertyInclude(EngineSource.From2004)]
+        public bool IsLossless { get; set; }
+
+        [Property("Quality")]
+        [PropertyExclude(EngineSource.From2004)]
+        protected int QualityOld
+        {
+            get { return JpegQuality; }
+            set
+            {
+                JpegQuality = value;
+                _usedLegacyProperty = true;
+            }
+        }
+
+        [Property("JPEG Quality 2")]
+        [PropertyInclude(EngineSource.From2004)]
+        public int JpegQuality { get; set; }
+
+        [Property("Center Hot Spot")]
+        public bool CenterHotSpot { get; set; }
+
+        [Property("Blended With Black")]
+        [PropertyInclude(EngineSource.From2004)]
+        public bool BlendedWithBlack { get; set; }
+
+        [Property("Load Black Biased")]
+        [PropertyInclude(EngineSource.From2004)]
+        public bool LoadBlackBiased { get; set; }
+
+        [Property("Blit Type")]
+        [PropertyInclude(EngineSource.From2004)]
+        public BlitType BlitType { get; set; }
+
+        public Frame(Image image = null)
+        {
+            Source = EngineSource.From2008;
+            Texture = image;
+        }
+
+        internal static Frame FromStream(
+            out byte[] imageData,
+            out byte[] maskData,
+            Stream frameStream,
+            Stream propertiesStream = null)
+        {
+            maskData = null;
+
+            BinaryReader reader = new(frameStream);
+            Point offset = new(reader.ReadInt32(), reader.ReadInt32());
+            bool isCompressed = reader.ReadBoolean();
+            bool isLayered = false;
+            int initialWidth = 0;
+            int initialHeight = 0;
+
+            if (isCompressed)
+            {
+                isLayered = FrameUtils.CheckDeflateHeader(reader, false);
+                if (isLayered)
                 {
                     int _rawSize = reader.ReadByte();
                     if (_rawSize != kFlagCompressed)
@@ -43,8 +116,8 @@ namespace NuVelocity.IO
 
                     var inflater = new Inflater();
                     inflater.SetInput(reader.ReadBytes(deflatedSize));
-                    _data = new byte[inflatedSize];
-                    if (inflater.Inflate(_data) == 0)
+                    imageData = new byte[inflatedSize];
+                    if (inflater.Inflate(imageData) == 0)
                     {
                         throw new InvalidDataException();
                     }
@@ -52,95 +125,78 @@ namespace NuVelocity.IO
                 else
                 {
                     int _rawSize = reader.ReadInt32();
-                    _data = reader.ReadBytes(_rawSize);
+                    imageData = reader.ReadBytes(_rawSize);
                 }
 
-                Width = reader.ReadInt32();
-                Height = reader.ReadInt32();
+                initialWidth = reader.ReadInt32();
+                initialHeight = reader.ReadInt32();
             }
             else
             {
                 int _rawSize = reader.ReadInt32();
-                _data = reader.ReadBytes(_rawSize);
-                int distanceToEof = (int)(stream.Length - stream.Position);
-                if (distanceToEof <= 0)
+                imageData = reader.ReadBytes(_rawSize);
+                int distanceToEof = (int)(frameStream.Length - frameStream.Position);
+                if (distanceToEof > 0)
                 {
-                    // EOF.
-                    return;
-                }
-                reader.ReadByte(); // 1 byte padding.
-                int maskInflatedSize = reader.ReadInt32();
+                    reader.ReadByte(); // 1 byte padding.
+                    int maskInflatedSize = reader.ReadInt32();
 
-                var inflater = new Inflater();
-                inflater.SetInput(reader.ReadBytes(distanceToEof - 5));
-                _rawMaskData = new byte[maskInflatedSize];
-                if (inflater.Inflate(_rawMaskData) == 0)
-                {
-                    throw new InvalidDataException();
+                    var inflater = new Inflater();
+                    inflater.SetInput(reader.ReadBytes(distanceToEof - 5));
+                    maskData = new byte[maskInflatedSize];
+                    if (inflater.Inflate(maskData) == 0)
+                    {
+                        throw new InvalidDataException();
+                    }
                 }
             }
-        }
 
-        public Image ToImage()
-        {
-            Image<Rgba32> image;
-            if (IsCompressed)
+            Frame frame = new();
+
+            if (propertiesStream != null)
             {
-                if (_isLayered)
+                PropertySerializer.Deserialize(propertiesStream, frame);
+            }
+
+            Image image = null;
+            if (isCompressed)
+            {
+                if (isLayered)
                 {
-                    image = FrameUtils.LoadLayeredRgbaImage(_data, Width, Height);
+                    image = FrameUtils.LoadLayeredRgbaImage(imageData, initialWidth, initialHeight);
                 }
                 else
                 {
-                    image = FrameUtils.LoadRgbaImage(_data, Width, Height);
+                    image = FrameUtils.LoadRgbaImage(imageData, initialWidth, initialHeight);
                 }
             }
             else
             {
-                image = FrameUtils.LoadJpegImage(_data, _rawMaskData);
-                // FIXME: fix width/height handling, display only.
+                image = FrameUtils.LoadJpegImage(imageData, maskData);
             }
 
-            bool centerHotSpot = false;
-            if (RawList != null)
+            if (frame.CenterHotSpot)
             {
-                RawProperty centerHotSpotProp = RawList.Properties
-                    .FirstOrDefault((property) => property.Name == "Center Hot Spot", null);
-                if (centerHotSpotProp != null)
-                {
-                    centerHotSpot = ((string)centerHotSpotProp.Value) == "1";
-                }
-            }
-
-            Size size = new(image.Width, image.Height);
-            if (centerHotSpot)
-            {
-                float deltaX = Offset.X - (image.Width / 2f);
-                float deltaY = Offset.Y - (image.Height / 2f);
+                float deltaX = offset.X - (image.Width / 2f);
+                float deltaY = offset.Y - (image.Height / 2f);
                 float newWidth = image.Width + (2 * Math.Abs(deltaX));
                 float newHeight = image.Height + (2 * Math.Abs(deltaY));
-                if (Offset.X > 0)
+                if (offset.X > 0)
                 {
                     newWidth += image.Width * 2;
                 }
-                if (Offset.Y > 0)
+                if (offset.Y > 0)
                 {
                     newHeight += image.Height * 2;
                 }
-                size.Width = (int)newWidth;
-                size.Height = (int)newHeight;
-            }
-
-            Point hotSpot = new(size.Width / 2, size.Height / 2);
-            if (centerHotSpot)
-            {
-                int resultantX = hotSpot.X + Offset.X;
-                int resultantY = hotSpot.Y + Offset.Y;
+                Size newSize = new((int)newWidth, (int)newHeight);
+                int resultantX = (newSize.Width / 2) + offset.X;
+                int resultantY = (newSize.Height / 2) + offset.Y;
                 image.Mutate(source =>
                 {
                     ResizeOptions options = new()
                     {
-                        Size = size,
+                        Size = newSize,
                         Mode = ResizeMode.Manual,
                         Sampler = KnownResamplers.NearestNeighbor,
                         PadColor = Color.Transparent,
@@ -153,37 +209,30 @@ namespace NuVelocity.IO
                     source.Resize(options);
                 });
             }
-            else
+            // The image's center is the hot spot location or
+            // it has no defined offset.
+            else if (((offset.X + (image.Width / 2)) != 0
+                || (offset.Y + (image.Height / 2)) != 0)
+                && (offset.X != 0 || offset.Y != 0))
             {
-                // The image's center is the hot spot location or
-                // it has no defined offset.
-                if (((Offset.X + hotSpot.X) == 0 && (Offset.Y + hotSpot.Y) == 0)
-                    || (Offset.X == 0 && Offset.Y == 0))
-                {
-                    return image;
-                }
-                else
-                {
-                    FrameUtils.OffsetImage(image, Offset);
-                }
+                FrameUtils.OffsetImage(image, offset);
             }
 
-            return image;
+            frame.Texture = image;
+
+            if (frame._usedLegacyProperty)
+            {
+                frame.Source = EngineSource.From1998;
+            }
+
+            return frame;
         }
 
-        public RawPropertyList RawList { get; private set; }
-        public void ReadPropertiesFromStream(Stream stream)
+        public static Frame FromStream(
+            Stream frameStream,
+            Stream propertiesStream = null)
         {
-            byte[] data = new byte[stream.Length];
-            stream.Read(data, 0, data.Length);
-
-            RawList = RawPropertyList.FromBytes(data)
-                .FirstOrDefault((property) => property.Name == "CStandAloneFrame", null);
-        }
-
-        internal Tuple<byte[], byte[]> DumpRawData()
-        {
-            return new Tuple<byte[], byte[]>(_data, _rawMaskData);
+            return FromStream(out _, out _, frameStream, propertiesStream);
         }
     }
 }

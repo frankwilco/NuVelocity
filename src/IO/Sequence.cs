@@ -4,27 +4,154 @@ using ICSharpCode.SharpZipLib.Zip.Compression;
 
 namespace NuVelocity.IO
 {
+    [PropertyRoot("CSequence", "Sequence")]
     public class Sequence
     {
         private const byte kSignatureStandard = 0x01;
 
-        public bool IsCompressed { get; private set; }
+        private bool _hasLegacyProperty = false;
+        private bool _hasTypoProperty = false;
+        private bool _hasMipmapProperty = false;
 
-        private bool _isFont;
-        private bool _isHD;
-        private bool _isImageDds;
-        private bool _isEmpty;
+        public Image[] Textures { get; set; }
 
-        private byte[] _embeddedLists;
-        private byte[] _sequenceSpriteSheet;
-        private byte[] _rawMaskData;
+        public int Width { get; protected set; }
 
-        public int Width { get; private set; }
-        public int Height { get; private set; }
+        public int Height { get; protected set; }
 
-        public Sequence(Stream stream)
+        public EngineSource Source { get; set; }
+
+        [Property("Frames Per Second")]
+        public int FramesPerSecond { get; set; }
+
+        [Property("Blit Type")]
+        public BlitType BlitType { get; set; }
+
+        [Property("X Offset")]
+        public int XOffset { get; set; }
+
+        [Property("Y Offset")]
+        public int YOffset { get; set; }
+
+        [Property("Use Every")]
+        [PropertyInclude(EngineSource.From2004)]
+        public int UseEvery { get; set; }
+
+        [Property("Always Include Last Frame")]
+        [PropertyInclude(EngineSource.From2004)]
+        public bool AlwaysIncludeLastFrame { get; set; }
+
+        [Property("Center Hot Spot")]
+        public bool CenterHotSpot { get; set; }
+
+        [Property("Blended With Black")]
+        public bool BlendedWithBlack { get; set; }
+
+        [Property("Crop Color 0")]
+        [PropertyInclude(EngineSource.From2009)]
+        public bool CropColor0 { get; set; }
+
+        [Property("Crop Clor 0")]
+        [PropertyExclude(EngineSource.From2009)]
+        protected bool CropClor0
         {
-            using BinaryReader reader = new(stream);
+            get { return CropColor0; }
+            set
+            {
+                CropColor0 = value;
+                _hasTypoProperty = true;
+            }
+        }
+
+        [Property("Use 8 Bit Alpha")]
+        public bool Use8BitAlpha { get; set; }
+
+        [Property("Run Length Encode")]
+        [PropertyInclude(EngineSource.From2004)]
+        public bool IsRle { get; set; }
+
+        [Property("Do Dither")]
+        public bool DitherImage { get; set; }
+
+        [Property("Loss Less")]
+        [PropertyExclude(EngineSource.From2004)]
+        protected bool IsLosslessOld
+        {
+            get { return IsLossless; }
+            set
+            {
+                IsLossless = value;
+                _hasLegacyProperty = true;
+            }
+        }
+
+        [Property("Loss Less 2")]
+        [PropertyInclude(EngineSource.From2004)]
+        public bool IsLossless { get; set; }
+
+        [Property("Quality")]
+        [PropertyExclude(EngineSource.From2004)]
+        protected int QualityOld
+        {
+            get { return JpegQuality; }
+            set
+            {
+                JpegQuality = value;
+                _hasLegacyProperty = true;
+            }
+        }
+
+        [Property("JPEG Quality 2")]
+        [PropertyInclude(EngineSource.From2004)]
+        public int JpegQuality { get; set; }
+
+        [Property("DDS")]
+        [PropertyInclude(EngineSource.FromPS3)]
+        public bool IsDds { get; set; }
+
+        [Property("Needs Buffer")]
+        [PropertyInclude(EngineSource.FromPS3)]
+        public bool NeedsBuffer { get; set; }
+
+        private bool _mipmapForNativeVersion;
+        [Property("Mipmap For Native Version")]
+        [PropertyInclude(EngineSource.From2008)]
+        public bool MipmapForNativeVersion
+        {
+            get { return _mipmapForNativeVersion; }
+            set
+            {
+                _mipmapForNativeVersion = value;
+                _hasMipmapProperty = true;
+            }
+        }
+
+        internal static Sequence FromStream(
+            out byte[] embeddedLists,
+            out byte[] sequenceSpriteSheet,
+            out byte[] maskData,
+            out Image spritesheet,
+            Stream sequenceStream,
+            Stream propertiesStream = null)
+        {
+            Sequence sequence = new();
+
+            bool hasProperties = false;
+            bool isCompressed = false;
+            bool isFont = false;
+            bool isHD = false;
+            bool isEmpty = false;
+            sequenceSpriteSheet = null;
+            maskData = null;
+            int atlasWidth = 0;
+            int atlasHeight = 0;
+
+            if (propertiesStream != null)
+            {
+                hasProperties = PropertySerializer.Deserialize(propertiesStream, sequence);
+            }
+
+            using BinaryReader reader = new(sequenceStream);
 
             // Check if the embedded lists are uncompressed.
             bool hasHeader = FrameUtils.CheckDeflateHeader(reader, false);
@@ -32,28 +159,27 @@ namespace NuVelocity.IO
             // since it's different for fonts.
             if (!hasHeader)
             {
-                _isFont = FrameUtils.CheckDeflateHeader(reader, true);
-                _isHD = !_isFont;
+                isFont = FrameUtils.CheckDeflateHeader(reader, true);
+                isHD = !isFont;
             }
 
-            if (_isHD)
+            if (isHD)
             {
                 int embeddedListsSize = reader.ReadInt32();
-                _embeddedLists = reader.ReadBytes(embeddedListsSize);
-                
-                var ddsProperty = RawList.Properties.First((property) => property.Name == "DDS");
-                _isImageDds = (ddsProperty.Value as string) == "1";
+                embeddedLists = reader.ReadBytes(embeddedListsSize);
 
-                if (_isImageDds)
+                hasProperties = PropertySerializer.Deserialize(embeddedLists, sequence);
+
+                if (sequence.IsDds)
                 {
-                    long distanceToEof = stream.Length - stream.Position;
+                    long distanceToEof = sequenceStream.Length - sequenceStream.Position;
                     if (distanceToEof == 0)
                     {
-                        _isEmpty = true;
+                        isEmpty = true;
                     }
                     else
                     {
-                        _sequenceSpriteSheet = reader.ReadBytes(
+                        sequenceSpriteSheet = reader.ReadBytes(
                             (int)distanceToEof);
                     }
                 }
@@ -61,160 +187,181 @@ namespace NuVelocity.IO
                 {
                     byte unknown1 = reader.ReadByte(); // unknown value
                     int imageSize = reader.ReadInt32();
-                    _sequenceSpriteSheet = reader.ReadBytes(imageSize);
-                    Width = reader.ReadInt32();
-                    Height = reader.ReadInt32();
+                    sequenceSpriteSheet = reader.ReadBytes(imageSize);
+                    atlasWidth = reader.ReadInt32();
+                    atlasHeight = reader.ReadInt32();
                 }
-                return;
-            }
-
-            if (_isFont)
-            {
-                int firstAscii = reader.ReadInt32();
-                int lastAscii = reader.ReadInt32();
-                int lineHeight = reader.ReadInt32();
-            }
-
-            int signature = reader.ReadByte();
-            if (signature != kSignatureStandard)
-            {
-                throw new InvalidDataException();
-            }
-
-            Inflater inflater = new();
-            int frameInfoDeflatedSize = reader.ReadInt32();
-            int frameInfoInflatedSize = reader.ReadInt32();
-            byte[] rawFrameInfo = reader.ReadBytes(frameInfoDeflatedSize);
-            inflater.SetInput(rawFrameInfo);
-            _embeddedLists = new byte[frameInfoInflatedSize];
-            if (inflater.Inflate(_embeddedLists) != frameInfoInflatedSize)
-            {
-                throw new InvalidDataException();
-            }
-            inflater.Reset();
-
-            if (reader.PeekChar() == -1)
-            {
-                // No sprite sheet data. This is probably an empty sequence.
-                _isEmpty = true;
-                return;
-            }
-
-            IsCompressed = reader.ReadBoolean();
-            if (IsCompressed)
-            {
-                byte unknown1 = reader.ReadByte(); // unknown value
-                int imageDeflatedSize = reader.ReadInt32();
-                int imageInflatedSize = reader.ReadInt32();
-                _sequenceSpriteSheet = new byte[imageInflatedSize];
-                inflater.SetInput(reader.ReadBytes(imageDeflatedSize));
-                if (inflater.Inflate(_sequenceSpriteSheet) != imageInflatedSize)
-                {
-                    throw new InvalidDataException();
-                }
-                Width = reader.ReadInt32();
-                Height = reader.ReadInt32();
             }
             else
             {
-                int imageSize = reader.ReadInt32();
-                _sequenceSpriteSheet = reader.ReadBytes(imageSize);
+                if (isFont)
+                {
+                    int firstAscii = reader.ReadInt32();
+                    int lastAscii = reader.ReadInt32();
+                    int lineHeight = reader.ReadInt32();
+                }
 
-                reader.ReadByte(); // 1-byte padding.
-                int maskInflatedSize = reader.ReadInt32();
-                long distanceToEof = stream.Length - stream.Position;
-                byte[] rawMaskData = reader.ReadBytes((int)distanceToEof);
-                inflater.SetInput(rawMaskData);
-                _rawMaskData = new byte[maskInflatedSize];
-                if (inflater.Inflate(_rawMaskData) != maskInflatedSize)
+                int signature = reader.ReadByte();
+                if (signature != kSignatureStandard)
                 {
                     throw new InvalidDataException();
                 }
-            }
-        }
 
-        public Image ToImage()
-        {
-            if (_sequenceSpriteSheet == null)
-            {
-                if (_isEmpty)
+                Inflater inflater = new();
+                int frameInfoDeflatedSize = reader.ReadInt32();
+                int frameInfoInflatedSize = reader.ReadInt32();
+                byte[] rawFrameInfo = reader.ReadBytes(frameInfoDeflatedSize);
+                inflater.SetInput(rawFrameInfo);
+                embeddedLists = new byte[frameInfoInflatedSize];
+                if (inflater.Inflate(embeddedLists) != frameInfoInflatedSize)
                 {
-                    return new Image<Rgba32>(1, 1);
+                    throw new InvalidDataException();
                 }
-                return null;
-            }
+                inflater.Reset();
 
-            if (_isHD)
-            {
-                if (_isImageDds)
+                if (reader.PeekChar() == -1)
                 {
-                    return null;
+                    // No sprite sheet data. This is probably an empty sequence.
+                    isEmpty = true;
                 }
-                return FrameUtils.LoadRgbaImage(_sequenceSpriteSheet, Width, Height);
+                else
+                {
+                    isCompressed = reader.ReadBoolean();
+                    if (isCompressed)
+                    {
+                        byte unknown1 = reader.ReadByte(); // unknown value
+                        int imageDeflatedSize = reader.ReadInt32();
+                        int imageInflatedSize = reader.ReadInt32();
+                        sequenceSpriteSheet = new byte[imageInflatedSize];
+                        inflater.SetInput(reader.ReadBytes(imageDeflatedSize));
+                        if (inflater.Inflate(sequenceSpriteSheet) != imageInflatedSize)
+                        {
+                            throw new InvalidDataException();
+                        }
+                        atlasWidth = reader.ReadInt32();
+                        atlasHeight = reader.ReadInt32();
+                    }
+                    else
+                    {
+                        int imageSize = reader.ReadInt32();
+                        sequenceSpriteSheet = reader.ReadBytes(imageSize);
+
+                        reader.ReadByte(); // 1-byte padding.
+                        int maskInflatedSize = reader.ReadInt32();
+                        long distanceToEof = sequenceStream.Length - sequenceStream.Position;
+                        byte[] rawMaskData = reader.ReadBytes((int)distanceToEof);
+                        inflater.SetInput(rawMaskData);
+                        maskData = new byte[maskInflatedSize];
+                        if (inflater.Inflate(maskData) != maskInflatedSize)
+                        {
+                            throw new InvalidDataException();
+                        }
+                    }
+                }
+
+                hasProperties = PropertySerializer.Deserialize(embeddedLists, sequence);
             }
 
-            if (IsCompressed)
+            spritesheet = null;
+            if (sequenceSpriteSheet == null)
             {
-                return FrameUtils.LoadLayeredRgbaImage(_sequenceSpriteSheet, Width, Height);
+                if (isEmpty)
+                {
+                    spritesheet = new Image<Rgba32>(1, 1);
+                }
             }
-
-            var image = FrameUtils.LoadJpegImage(_sequenceSpriteSheet, _rawMaskData);
-            Width = image.Width;
-            Height = image.Height;
-            return image;
-        }
-
-        public Image[] ToImages()
-        {
-            Image spritesheet = ToImage();
-            if (spritesheet == null && !_isImageDds)
+            else if (isHD)
             {
-                return null;
+                if (!sequence.IsDds)
+                {
+                    spritesheet = FrameUtils.LoadRgbaImage(sequenceSpriteSheet, atlasWidth, atlasHeight);
+                }
             }
-            if (_isEmpty)
+            else if (isCompressed)
             {
-                return new Image[1] { spritesheet };
+                spritesheet = FrameUtils.LoadLayeredRgbaImage(sequenceSpriteSheet, atlasWidth, atlasHeight);
             }
-
-            RawPropertyList list = RawPropertyList.FromBytes(_embeddedLists)
-                .First((property) => property.Name == "CSequenceFrameInfoList");
-            var frameInfos = ((RawPropertyList)list.Properties
-                .First((property) => property.Name == "Frame Infos"))
-                .Properties
-                .Where((property) => property.Name == "Frame Info")
-                .ToArray();
-            var flags = (SequenceFlags)Enum.Parse(
-                typeof(SequenceFlags),
-                list.Properties.First(
-                    (property) => property.Name == "Flags").Value as string);
-
-            int baseXOffset = 0;
-            int baseYOffset = 0;
-            bool centerHotSpot = flags.HasFlag(SequenceFlags.CenterHotSpot);
-
-            if (RawList != null)
+            else
             {
-                baseXOffset = int.Parse(RawList.Properties
-                    .First((property) => property.Name == "X Offset").Value as string);
-                baseYOffset = int.Parse(RawList.Properties
-                    .First((property) => property.Name == "Y Offset").Value as string);
+                spritesheet = FrameUtils.LoadJpegImage(sequenceSpriteSheet, maskData);
+                atlasWidth = spritesheet.Width;
+                atlasHeight = spritesheet.Height;
             }
 
-            Image[] images = new Image[frameInfos.Length];
-            Point[] offsets = new Point[frameInfos.Length];
+            SequenceFrameInfoList frameInfoList = new();
+            PropertySerializer.Deserialize(embeddedLists, frameInfoList);
+
+            // Try to take properties from the flags property if it's excluded
+            // from the embedded lists. Not all sequence properties are
+            // represented in the Flags property, however.
+            if (!hasProperties)
+            {
+                sequence.CenterHotSpot = frameInfoList.Flags.HasFlag(
+                    SequenceFlags.CenterHotSpot);
+                sequence.BlendedWithBlack = frameInfoList.Flags.HasFlag(
+                    SequenceFlags.BlendedWithBlack);
+                sequence.CropClor0 = frameInfoList.Flags.HasFlag(
+                    SequenceFlags.CropColor0);
+                sequence.Use8BitAlpha = frameInfoList.Flags.HasFlag(
+                    SequenceFlags.Use8BitAlpha);
+                sequence.IsRle = frameInfoList.Flags.HasFlag(
+                    SequenceFlags.RunLengthEncode);
+                sequence.DitherImage = frameInfoList.Flags.HasFlag(
+                    SequenceFlags.DoDither);
+                sequence.IsLosslessOld = frameInfoList.Flags.HasFlag(
+                    SequenceFlags.LossLess2);
+                sequence.FramesPerSecond = frameInfoList.FramesPerSecond;
+                sequence.BlitType = frameInfoList.BlitTypeEnum;
+                // XXX: Assume maximum image quality.
+                sequence.QualityOld = 100;
+            }
+
+            // Determine engine source based on a few indicators.
+            if (!hasProperties || sequence._hasLegacyProperty)
+            {
+                sequence.Source = EngineSource.From1998;
+            }
+            else if (sequence._hasTypoProperty)
+            {
+                sequence.Source = EngineSource.From2004;
+                if (sequence._hasMipmapProperty)
+                {
+                    sequence.Source = EngineSource.From2008;
+                }
+            }
+            else if (isHD)
+            {
+                sequence.Source = EngineSource.FromPS3;
+            }
+            else
+            {
+                sequence.Source = EngineSource.From2009;
+            }
+
+            // Return early if there's no need to process the image further.
+            if (spritesheet == null && !sequence.IsDds)
+            {
+                return sequence;
+            }
+            else if (isEmpty)
+            {
+                sequence.Textures = new Image[1] { spritesheet };
+                return sequence;
+            }
+
+            int baseXOffset = sequence.XOffset;
+            int baseYOffset = sequence.YOffset;
+            bool centerHotSpot = frameInfoList.Flags.HasFlag(SequenceFlags.CenterHotSpot);
+
+            Image[] images = new Image[frameInfoList.Values.Length];
+            Point[] offsets = new Point[frameInfoList.Values.Length];
 
             int pixelsRead = 0;
             Size maxSize = new();
             Point hotSpot = new();
-            for (int i = 0; i < frameInfos.Length; i++)
+            for (int i = 0; i < frameInfoList.Values.Length; i++)
             {
-                int left = 0;
-                int top = 0;
-                int right = 0;
-                int bottom = 0;
-                Point offset = new(baseXOffset, baseYOffset);
-
-                var frameInfo = frameInfos[i] as RawPropertyList;
+                var frameInfo = frameInfoList.Values[i];
                 // Represent empty frames with a 1x1 transparent image.
                 if (frameInfo == null)
                 {
@@ -223,42 +370,23 @@ namespace NuVelocity.IO
                     continue;
                 }
 
-                foreach (var property in frameInfo.Properties)
-                {
-                    int value = int.Parse(property.Value as string);
-                    switch (property.Name)
-                    {
-                        case "Left":
-                            left = value;
-                            break;
-                        case "Top":
-                            top = value;
-                            break;
-                        case "Right":
-                            right = value;
-                            break;
-                        case "Bottom":
-                            bottom = value;
-                            break;
-                        case "UpperLeftXOffset":
-                            offset.X += value;
-                            break;
-                        case "UpperLeftYOffset":
-                            offset.Y += value;
-                            break;
-                        default:
-                            break;
-                    }
-                }
+                Point offset = new(
+                    baseXOffset + frameInfo.UpperLeftXOffset,
+                    baseYOffset + frameInfo.UpperLeftYOffset);
 
                 offsets[i] = offset;
-                Rectangle cropRect = new(left, top, right - left, bottom - top);
+                Rectangle cropRect = new(
+                    frameInfo.Left,
+                    frameInfo.Top,
+                    frameInfo.Right - frameInfo.Left,
+                    frameInfo.Bottom - frameInfo.Top);
+
                 Image image = null;
-                if (_isImageDds)
+                if (sequence.IsDds)
                 {
                     int pixels = cropRect.Width * cropRect.Height;
                     byte[] buffer = new byte[pixels];
-                    Buffer.BlockCopy(_sequenceSpriteSheet, pixelsRead, buffer, 0, pixels);
+                    Buffer.BlockCopy(sequenceSpriteSheet, pixelsRead, buffer, 0, pixels);
 
                     BcDecoder decoder = new();
                     image = decoder.DecodeRawToImageRgba32(buffer,
@@ -344,33 +472,21 @@ namespace NuVelocity.IO
                 });
             }
 
-            return images;
+            sequence.Textures = images;
+            return sequence;
         }
 
-        private RawPropertyList _properties;
-        public RawPropertyList RawList
+        public static Sequence FromStream(
+            Stream sequenceStream,
+            Stream propertiesStream = null)
         {
-            get
-            {
-                if (_embeddedLists == null)
-                {
-                    return null;
-                }
-
-                if (_properties == null)
-                {
-                    _properties = RawPropertyList.FromBytes(_embeddedLists)
-                        .FirstOrDefault((property) => property.Name == "CSequence", null);
-                }
-
-                return _properties;
-            }
-        }
-
-        internal Tuple<byte[], byte[], byte[]> DumpRawData()
-        {
-            return new Tuple<byte[], byte[], byte[]>(
-                _embeddedLists, _sequenceSpriteSheet, _rawMaskData);
+            return FromStream(
+                out _,
+                out _,
+                out _,
+                out _,
+                sequenceStream,
+                propertiesStream);
         }
     }
 }
