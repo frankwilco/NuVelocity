@@ -17,6 +17,10 @@ namespace NuVelocity.IO
 
         public EngineSource Source { get; set; }
 
+        [Property("Comment")]
+        [PropertyDynamic]
+        public string Comment { get; set; }
+
         [Property("Run Length Encode")]
         public bool IsRle { get; set; }
 
