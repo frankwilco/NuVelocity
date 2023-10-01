@@ -313,11 +313,14 @@ namespace NuVelocity
 
             SequenceFrameInfoList frameInfoList = new();
             PropertySerializer.Deserialize(embeddedLists, frameInfoList);
+            // XXX: Wik and earlier don't provide all the information in
+            // the sequence property list. Assume that we're lacking info
+            // if JPEG quality is set to 0.
+            bool likelyIncomplete = sequence.JpegQuality == 0;
 
-            // Try to take properties from the flags property if it's excluded
-            // from the embedded lists. Not all sequence properties are
-            // represented in the Flags property, however.
-            if (!hasProperties)
+            // Try to take properties from the flags property. However, not
+            // all sequence properties are represented in the Flags property.
+            if (!hasProperties || likelyIncomplete)
             {
                 sequence.CenterHotSpot = frameInfoList.Flags.HasFlag(
                     SequenceFlags.CenterHotSpot);
@@ -331,18 +334,22 @@ namespace NuVelocity
                     SequenceFlags.RunLengthEncode);
                 sequence.DitherImage = frameInfoList.Flags.HasFlag(
                     SequenceFlags.DoDither);
-                sequence.IsLosslessOld = frameInfoList.Flags.HasFlag(
+                sequence.IsLossless = frameInfoList.Flags.HasFlag(
                     SequenceFlags.Lossless);
                 sequence.FramesPerSecond = frameInfoList.FramesPerSecond;
                 sequence.BlitType = frameInfoList.BlitTypeEnum;
                 // XXX: Assume maximum image quality.
-                sequence.QualityOld = 100;
+                sequence.JpegQuality = 100;
             }
 
             // Determine engine source based on a few indicators.
             if (!hasProperties || sequence._hasLegacyProperty)
             {
                 sequence.Source = EngineSource.From1998;
+            }
+            else if (isHD)
+            {
+                sequence.Source = EngineSource.FromPS3;
             }
             else if (sequence._hasTypoProperty)
             {
@@ -351,10 +358,6 @@ namespace NuVelocity
                 {
                     sequence.Source = EngineSource.From2008;
                 }
-            }
-            else if (isHD)
-            {
-                sequence.Source = EngineSource.FromPS3;
             }
             else
             {
