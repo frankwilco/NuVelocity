@@ -38,6 +38,16 @@ namespace NuVelocity
         [Property("Do Dither")]
         public bool DitherImage { get; set; }
 
+        // XXX: Present in some Ricochet Xtreme frame properties file.
+        // Read, but don't serialize it.
+        [Property("Dither")]
+        [PropertyExclude(EngineSource.From1998)]
+        protected bool DitherImageOld
+        {
+            get { return DitherImage; }
+            set { DitherImage = value; }
+        }
+
         [Property("Change Bit Depth")]
         [PropertyInclude(EngineSource.From2004)]
         public bool ChangeBitDepth { get; set; }
