@@ -7,7 +7,8 @@ namespace NuVelocity
     {
         private const byte kFlagCompressed = 0x01;
 
-        private bool _usedLegacyProperty = false;
+        private bool _hasLegacyQualityProperty = false;
+        private bool _hasLegacyRemoveProperty = false;
 
         public Image Texture { get; set; }
 
@@ -45,7 +46,7 @@ namespace NuVelocity
             set
             {
                 IsLossless = value;
-                _usedLegacyProperty = true;
+                _hasLegacyQualityProperty = true;
             }
         }
 
@@ -61,7 +62,7 @@ namespace NuVelocity
             set
             {
                 JpegQuality = value;
-                _usedLegacyProperty = true;
+                _hasLegacyQualityProperty = true;
             }
         }
 
@@ -76,12 +77,49 @@ namespace NuVelocity
         [PropertyInclude(EngineSource.From2004)]
         public bool BlendedWithBlack { get; set; }
 
+        private bool _removeDeadAlpha;
+        [Property("Remove Dead Alpha")]
+        [PropertyExclude(EngineSource.From2001)]
+        public bool RemoveDeadAlpha
+        {
+            get { return _removeDeadAlpha; }
+            set
+            {
+                _removeDeadAlpha = value;
+                _hasLegacyRemoveProperty = true;
+            }
+        }
+
+        private bool _removeBlackBlending;
+        [Property("Remove Black Blending")]
+        [PropertyExclude(EngineSource.From2001)]
+        public bool RemoveBlackBlending
+        {
+            get { return _removeBlackBlending; }
+            set
+            {
+                _removeBlackBlending = value;
+                _hasLegacyRemoveProperty = true;
+            }
+        }
+
         [Property("Load Black Biased")]
-        [PropertyInclude(EngineSource.From2004)]
         public bool LoadBlackBiased { get; set; }
 
+        private int _finalBitDepth;
+        [Property("Final Bit Depth")]
+        [PropertyExclude(EngineSource.From2001)]
+        public int FinalBitDepth
+        {
+            get { return _finalBitDepth; }
+            set
+            {
+                _finalBitDepth = value;
+                _hasLegacyRemoveProperty = true;
+            }
+        }
+
         [Property("Blit Type")]
-        [PropertyInclude(EngineSource.From2004)]
         public BlitType BlitType { get; set; }
 
         [Property("Mipmap For Native Version")]
@@ -228,9 +266,15 @@ namespace NuVelocity
 
             frame.Texture = image;
 
-            if (frame._usedLegacyProperty)
+            // The remove alpha and blending properties were removed in 2001,
+            // while the old quality properties were removed in 2004.
+            if (frame._hasLegacyQualityProperty)
             {
-                frame.Source = EngineSource.From1998;
+                frame.Source = EngineSource.From2001;
+                if (frame._hasLegacyRemoveProperty)
+                {
+                    frame.Source = EngineSource.From1998;
+                }
             }
 
             return frame;
