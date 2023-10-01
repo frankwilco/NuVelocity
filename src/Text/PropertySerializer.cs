@@ -452,6 +452,12 @@ namespace NuVelocity.Text
 
                     // TODO: special case for ascii-encoded binary
                     Type propType = propInfo.PropertyType;
+                    // Get the underlying type if it's nullable.
+                    if (propType.IsGenericType &&
+                        propType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                    {
+                        propType = Nullable.GetUnderlyingType(propType);
+                    }
                     TypeCode typeCode = Type.GetTypeCode(propType);
                     object propValue = null;
                     switch (typeCode)
