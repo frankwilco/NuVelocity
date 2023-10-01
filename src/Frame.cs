@@ -70,6 +70,16 @@ namespace NuVelocity
             }
         }
 
+        // XXX: I've seen this only in some frame properties file
+        // with Ricochet Lost Worlds. Read, but don't serialize it.
+        [Property("JPEG Quality")]
+        [PropertyExclude(EngineSource.From1998)]
+        protected int JpegQualityOld
+        {
+            get { return JpegQuality; }
+            set { JpegQuality = value; }
+        }
+
         [Property("JPEG Quality 2")]
         [PropertyInclude(EngineSource.From2004)]
         public int JpegQuality { get; set; }
