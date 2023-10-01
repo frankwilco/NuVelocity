@@ -32,7 +32,7 @@ namespace NuVelocity
         [Property("Y-Sort")]
         [PropertyInclude(EngineSource.From2008)]
         [PropertyDynamic]
-        public int YSort { get; set; }
+        public int? YSort { get; set; }
 
         [Property("Poke Audio")]
         [PropertyInclude(EngineSource.From2008)]
@@ -42,7 +42,7 @@ namespace NuVelocity
         [Property("Editor Only")]
         [PropertyInclude(EngineSource.From2009)]
         [PropertyDynamic]
-        public bool EditorOnly { get; set;}
+        public bool? EditorOnly { get; set;}
 
         [Property("Frames Per Second")]
         public int FramesPerSecond { get; set; }
