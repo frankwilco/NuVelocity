@@ -34,6 +34,16 @@ namespace NuVelocity
         [PropertyDynamic]
         public int YSort { get; set; }
 
+        [Property("Poke Audio")]
+        [PropertyInclude(EngineSource.From2008)]
+        [PropertyDynamic]
+        public string PokeAudio { get; set; }
+
+        [Property("Editor Only")]
+        [PropertyInclude(EngineSource.From2009)]
+        [PropertyDynamic]
+        public bool EditorOnly { get; set;}
+
         [Property("Frames Per Second")]
         public int FramesPerSecond { get; set; }
 
