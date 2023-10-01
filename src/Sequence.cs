@@ -29,6 +29,11 @@ namespace NuVelocity
         [PropertyDynamic]
         public SequenceOfCoordinates SequenceOfCoordinates { get; set; }
 
+        [Property("Y-Sort")]
+        [PropertyInclude(EngineSource.From2008)]
+        [PropertyDynamic]
+        public int YSort { get; set; }
+
         [Property("Frames Per Second")]
         public int FramesPerSecond { get; set; }
 
