@@ -84,6 +84,10 @@ namespace NuVelocity
         [PropertyInclude(EngineSource.From2004)]
         public BlitType BlitType { get; set; }
 
+        [Property("Mipmap For Native Version")]
+        [PropertyInclude(EngineSource.From2008)]
+        public bool MipmapForNativeVersion { get; set; }
+
         public Frame(Image image = null)
         {
             Source = EngineSource.From2008;
