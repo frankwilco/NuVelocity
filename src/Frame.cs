@@ -22,6 +22,10 @@ namespace NuVelocity
         [PropertyDynamic]
         public string Comment { get; set; }
 
+        [Property("Palette")]
+        [PropertyDynamic]
+        public PaletteHolder Palette { get; set; }
+
         [Property("Run Length Encode")]
         public bool IsRle { get; set; }
 
