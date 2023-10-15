@@ -162,7 +162,13 @@ namespace NuVelocity
             Stream frameStream,
             Stream propertiesStream = null)
         {
+            imageData = null;
             maskData = null;
+
+            if (frameStream.Length == 0)
+            {
+                return null;
+            }
 
             BinaryReader reader = new(frameStream);
             Point offset = new(reader.ReadInt32(), reader.ReadInt32());
