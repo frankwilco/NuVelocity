@@ -1,4 +1,6 @@
 ﻿using ICSharpCode.SharpZipLib.Zip.Compression;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 
 namespace NuVelocity
 {

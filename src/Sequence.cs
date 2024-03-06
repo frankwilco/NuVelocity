@@ -1,6 +1,9 @@
 ﻿using BCnEncoder.Decoder;
 using BCnEncoder.ImageSharp;
 using ICSharpCode.SharpZipLib.Zip.Compression;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace NuVelocity
 {
