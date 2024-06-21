@@ -318,12 +318,13 @@ namespace NuVelocity
             PropertySerializer.Deserialize(embeddedLists, frameInfoList);
             // XXX: Wik and earlier don't provide all the information in
             // the sequence property list. Assume that we're lacking info
-            // if JPEG quality is set to 0.
-            bool likelyIncomplete = sequence.JpegQuality == 0;
+            // if JPEG quality is set to 0 or if FPS values don't match.
+            bool fpsMismatch = sequence.FramesPerSecond != frameInfoList.FramesPerSecond;
+            bool qualityMissing = sequence.JpegQuality == 0;
 
             // Try to take properties from the flags property. However, not
             // all sequence properties are represented in the Flags property.
-            if (!hasProperties || likelyIncomplete)
+            if (!hasProperties || fpsMismatch || qualityMissing)
             {
                 sequence.CenterHotSpot = frameInfoList.Flags.HasFlag(
                     SequenceFlags.CenterHotSpot);
@@ -364,6 +365,13 @@ namespace NuVelocity
             }
             else
             {
+                // XXX: We should check based on missing properties, especially
+                // in the case of Wik and Ricochet Lost Worlds (Xbox) instead
+                // of relying only on FPS mismatch.
+                if (fpsMismatch)
+                {
+                    sequence.Source = EngineSource.From2004;
+                }
                 sequence.Source = EngineSource.From2009;
             }
 
