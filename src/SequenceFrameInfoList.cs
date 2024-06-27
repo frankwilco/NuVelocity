@@ -31,6 +31,6 @@
         public BlitType BlitTypeEnum { get; set; }
 
         [Property("FPS")]
-        public int FramesPerSecond { get; set; }
+        public float FramesPerSecond { get; set; }
     }
 }

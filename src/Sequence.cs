@@ -82,7 +82,7 @@ namespace NuVelocity
 
         [Property("Frames Per Second")]
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
-        public int? FramesPerSecond { get; set; }
+        public float? FramesPerSecond { get; set; }
 
         [Property("Blit Type")]
         public BlitType? BlitType { get; set; }
