@@ -13,7 +13,7 @@
         public SequenceFlags Flags { get; set; }
 
         [Property("BlitType")]
-        [PropertyExclude(EngineSource.From2008)]
+        [PropertyExclude(PropertySerializationFlags.HasTextBlitType)]
         public int BlitType
         {
             get
@@ -27,7 +27,7 @@
         }
 
         [Property("Blit Type")]
-        [PropertyInclude(EngineSource.From2008)]
+        [PropertyInclude(PropertySerializationFlags.HasTextBlitType)]
         public BlitType BlitTypeEnum { get; set; }
 
         [Property("FPS")]

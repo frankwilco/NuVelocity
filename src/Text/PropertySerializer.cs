@@ -16,6 +16,7 @@ namespace NuVelocity.Text
             StringBuilder builder,
             object target,
             int depth,
+            PropertySerializationFlags source,
             bool ignoreNull = false)
         {
             var propAttr = prop.GetCustomAttribute<PropertyAttribute>();
@@ -36,23 +37,29 @@ namespace NuVelocity.Text
             }
             // 1: Write the value's properties if it's marked with the
             // property root attribute.
-            if (prop.PropertyType.IsDefined(typeof(PropertyRootAttribute)))
+            Type propertyType = prop.PropertyType;
+            Type? underlyingType = Nullable.GetUnderlyingType(propertyType);
+            if (underlyingType != null)
             {
-                if (!Serialize(builder, propValue, depth + 1))
+                propertyType = underlyingType;
+            }
+            if (propertyType.IsDefined(typeof(PropertyRootAttribute)))
+            {
+                if (!Serialize(builder, propValue, depth + 1, source))
                 {
                     builder.AppendLine();
                 }
             }
             // 2: Write bool values as 0 (false) or 1 (true).
-            else if (prop.PropertyType == typeof(bool))
+            else if (propertyType == typeof(bool))
             {
                 bool boolValue = (bool)propValue;
                 builder.AppendLine(boolValue ? "1" : "0");
             }
             // 3: Write enum values with their friendly name or as an int.
-            else if (prop.PropertyType.IsEnum)
+            else if (propertyType.IsEnum)
             {
-                MemberInfo memberInfo = prop.PropertyType
+                MemberInfo memberInfo = propertyType
                     .GetMember(propValue.ToString())[0];
                 // Write the enum value's friendly name.
                 if (memberInfo.IsDefined(typeof(PropertyAttribute)))
@@ -67,7 +74,7 @@ namespace NuVelocity.Text
                 builder.AppendLine(enumValue);
             }
             // 4: Write array values.
-            else if (prop.PropertyType.IsArray)
+            else if (propertyType.IsArray)
             {
                 Array arrayValue = (Array)propValue;
                 // Write property type (Array).
@@ -76,7 +83,7 @@ namespace NuVelocity.Text
                 builder.AppendLine("{");
                 // Check first if array elements have a property root attribute.
                 // Otherwise, we can't serialize this object without it.
-                Type elemType = prop.PropertyType.GetElementType();
+                Type elemType = propertyType.GetElementType();
                 if (elemType.IsDefined(typeof(PropertyRootAttribute)))
                 {
                     var elemAttr = elemType
@@ -91,7 +98,7 @@ namespace NuVelocity.Text
                         builder.Append($"{elemAttr.FriendlyName}=");
                         // Null elements are still represented. They
                         // serialize as empty (CObject=).
-                        if (!Serialize(builder, item, depth + 3))
+                        if (!Serialize(builder, item, depth + 3, source))
                         {
                             builder.AppendLine();
                         }
@@ -118,7 +125,7 @@ namespace NuVelocity.Text
             StringBuilder builder,
             object target,
             int depth,
-            EngineSource sourceFilter = EngineSource.From2009)
+            PropertySerializationFlags source)
         {
             if (builder is null)
             {
@@ -175,7 +182,7 @@ namespace NuVelocity.Text
 
                 var exclusionAttr = prop
                     .GetCustomAttribute<PropertyExcludeAttribute>();
-                if (exclusionAttr != null && sourceFilter >= exclusionAttr.Source)
+                if (exclusionAttr != null && ((source & exclusionAttr.Flags) > 0))
                 {
 #if NV_LOG
                     Console.WriteLine(
@@ -185,11 +192,9 @@ namespace NuVelocity.Text
 #endif
                     continue;
                 }
-                // Don't serialize this property if our engine source filter
-                // is older than the inclusion filter for this property.
                 var inclusionAttr = prop
                     .GetCustomAttribute<PropertyIncludeAttribute>();
-                if (inclusionAttr != null && sourceFilter < inclusionAttr.Source)
+                if (inclusionAttr != null && !((source & inclusionAttr.Flags) > 0))
                 {
 #if NV_LOG
                     Console.WriteLine(
@@ -203,14 +208,15 @@ namespace NuVelocity.Text
                 if (prop.IsDefined(typeof(PropertyDynamicAttribute)))
                 {
                     if (SerializeProperty(
-                        prop, builderDynamic, target, depth + 1, true))
+                        prop, builderDynamic, target, depth + 1, source, true))
                     {
                         dynamicCount++;
                     }
                     continue;
                 }
 
-                SerializeProperty(prop, builder, target, depth);
+                bool isCompact = (source & PropertySerializationFlags.Compact) == PropertySerializationFlags.Compact;
+                SerializeProperty(prop, builder, target, depth, source, isCompact);
             }
 
             if (dynamicCount > 0)
@@ -235,7 +241,7 @@ namespace NuVelocity.Text
         public static bool Serialize(
             TextWriter writer,
             object target,
-            EngineSource sourceFilter = EngineSource.From2009)
+            PropertySerializationFlags sourceFilter = PropertySerializationFlags.None)
         {
             if (writer is null)
             {
@@ -255,7 +261,7 @@ namespace NuVelocity.Text
         public static bool Serialize(
             Stream stream,
             object target,
-            EngineSource sourceFilter = EngineSource.From2009)
+            PropertySerializationFlags sourceFilter = PropertySerializationFlags.None)
         {
             if (stream is null)
             {

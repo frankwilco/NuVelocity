@@ -12,9 +12,14 @@ namespace NuVelocity
     {
         private const byte kSignatureStandard = 0x01;
 
-        private bool _hasLegacyProperty = false;
-        private bool _hasTypoProperty = false;
-        private bool _hasMipmapProperty = false;
+        private bool? _mipmapForNativeVersion;
+        private int? _ySort;
+        private string? _pokeAudio;
+        private bool? _editorOnly;
+        private bool? _cropColor0;
+        private int? _jpegQuality;
+        private bool? _isDds;
+        private bool? _needsBuffer;
 
         public Image[] Textures { get; set; }
 
@@ -22,134 +27,244 @@ namespace NuVelocity
 
         public int Height { get; protected set; }
 
-        public EngineSource Source { get; set; }
+        public PropertySerializationFlags Flags { get; set; }
 
         [Property("Comment")]
         [PropertyDynamic]
-        public string Comment { get; set; }
+        public string? Comment { get; set; }
 
+        // TN: Exclusive to Ricochet Lost Worlds and Ricochet Infinity.
         [Property("Sequence of Coordinates")]
         [PropertyDynamic]
-        public SequenceOfCoordinates SequenceOfCoordinates { get; set; }
+        public SequenceOfCoordinates? SequenceOfCoordinates { get; set; }
 
+        // TN: Exclusive to Build In Time and Costume Chaos.
         [Property("Y-Sort")]
-        [PropertyInclude(EngineSource.From2008)]
+        [PropertyInclude(PropertySerializationFlags.HasYSort)]
         [PropertyDynamic]
-        public int? YSort { get; set; }
-
-        [Property("Poke Audio")]
-        [PropertyInclude(EngineSource.From2008)]
-        [PropertyDynamic]
-        public string PokeAudio { get; set; }
-
-        [Property("Editor Only")]
-        [PropertyInclude(EngineSource.From2009)]
-        [PropertyDynamic]
-        public bool? EditorOnly { get; set;}
-
-        [Property("Frames Per Second")]
-        public int FramesPerSecond { get; set; }
-
-        [Property("Blit Type")]
-        public BlitType BlitType { get; set; }
-
-        [Property("X Offset")]
-        public int XOffset { get; set; }
-
-        [Property("Y Offset")]
-        public int YOffset { get; set; }
-
-        [Property("Use Every")]
-        [PropertyInclude(EngineSource.From2004)]
-        public int UseEvery { get; set; }
-
-        [Property("Always Include Last Frame")]
-        [PropertyInclude(EngineSource.From2004)]
-        public bool AlwaysIncludeLastFrame { get; set; }
-
-        [Property("Center Hot Spot")]
-        public bool CenterHotSpot { get; set; }
-
-        [Property("Blended With Black")]
-        public bool BlendedWithBlack { get; set; }
-
-        [Property("Crop Color 0")]
-        [PropertyInclude(EngineSource.From2009)]
-        public bool CropColor0 { get; set; }
-
-        [Property("Crop Clor 0")]
-        [PropertyExclude(EngineSource.From2009)]
-        protected bool CropClor0
+        public int? YSort
         {
-            get { return CropColor0; }
+            get { return _ySort; }
             set
             {
-                CropColor0 = value;
-                _hasTypoProperty = true;
+                _ySort = value;
+                Flags |= PropertySerializationFlags.HasYSort;
             }
         }
 
+        // TN: Exclusive to Build In Time.
+        [Property("Poke Audio")]
+        [PropertyInclude(PropertySerializationFlags.HasPokeAudio)]
+        [PropertyDynamic]
+        public string? PokeAudio
+        {
+            get { return _pokeAudio; }
+            set
+            {
+                _pokeAudio = value;
+                Flags |= PropertySerializationFlags.HasPokeAudio;
+            }
+        }
+
+        // TN: Exclusive to Costume Chaos.
+        [Property("Editor Only")]
+        [PropertyDynamic]
+        [PropertyInclude(PropertySerializationFlags.HasEditorOnly)]
+        public bool? EditorOnly
+        {
+            get { return _editorOnly; }
+            set
+            {
+                _editorOnly = value;
+                Flags |= PropertySerializationFlags.HasEditorOnly;
+            }
+        }
+
+        [Property("Frames Per Second")]
+        [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
+        public int? FramesPerSecond { get; set; }
+
+        [Property("Blit Type")]
+        public BlitType? BlitType { get; set; }
+
+        [Property("X Offset")]
+        public int? XOffset { get; set; }
+
+        [Property("Y Offset")]
+        public int? YOffset { get; set; }
+
+        [Property("Use Every")]
+        [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
+                         PropertySerializationFlags.HasSimpleFormat)]
+        public int? UseEvery { get; set; }
+
+        [Property("Always Include Last Frame")]
+        [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
+                         PropertySerializationFlags.HasSimpleFormat)]
+        public bool? AlwaysIncludeLastFrame { get; set; }
+
+        [Property("Center Hot Spot")]
+        public bool? CenterHotSpot { get; set; }
+
+        [Property("Blended With Black")]
+        [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
+                         PropertySerializationFlags.HasSimpleFormat)]
+        public bool? BlendedWithBlack { get; set; }
+
+        [Property("Crop Color 0")]
+        [PropertyInclude(PropertySerializationFlags.HasFixedCropColor0Name)]
+        public bool? CropColor0
+        {
+            get { return _cropColor0; }
+            set
+            {
+                if (_cropColor0 == null)
+                {
+                    Flags |= PropertySerializationFlags.HasFixedCropColor0Name;
+                }
+                _cropColor0 = value;
+            }
+        }
+
+        [Property("Crop Clor 0")]
+        [PropertyExclude(PropertySerializationFlags.HasFixedCropColor0Name)]
+        protected bool? CropClor0
+        {
+            get { return _cropColor0; }
+            set { _cropColor0 = value; }
+        }
+
         [Property("Use 8 Bit Alpha")]
-        public bool Use8BitAlpha { get; set; }
+        public bool? Use8BitAlpha { get; set; }
 
         [Property("Run Length Encode")]
-        [PropertyInclude(EngineSource.From2004)]
-        public bool IsRle { get; set; }
+        [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
+                         PropertySerializationFlags.HasSimpleFormat)]
+        public bool? IsRle { get; set; }
 
         [Property("Do Dither")]
-        public bool DitherImage { get; set; }
+        [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
+        public bool? DitherImage { get; set; }
+
+        // TN: Present in Star Trek Away Team sequence files.
+        [Property("Dither")]
+        [PropertyInclude(PropertySerializationFlags.HasSimpleFormat)]
+        protected bool? DitherImageOld
+        {
+            get { return DitherImage; }
+            set
+            {
+                DitherImage = value;
+                Flags |= PropertySerializationFlags.HasSimpleFormat;
+            }
+        }
 
         [Property("Loss Less")]
-        [PropertyExclude(EngineSource.From2004)]
-        protected bool IsLosslessOld
+        [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
+        [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
+        protected bool? IsLosslessOld
         {
             get { return IsLossless; }
             set
             {
                 IsLossless = value;
-                _hasLegacyProperty = true;
+                Flags |= PropertySerializationFlags.HasLegacyImageQuality;
             }
         }
 
         [Property("Loss Less 2")]
-        [PropertyInclude(EngineSource.From2004)]
-        public bool IsLossless { get; set; }
+        [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
+                         PropertySerializationFlags.HasSimpleFormat)]
+        public bool? IsLossless { get; set; }
 
         [Property("Quality")]
-        [PropertyExclude(EngineSource.From2004)]
-        protected int QualityOld
+        [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
+        protected int? QualityOld
         {
-            get { return JpegQuality; }
+            get { return _jpegQuality; }
             set
             {
-                JpegQuality = value;
-                _hasLegacyProperty = true;
+                _jpegQuality = value;
+                Flags |= PropertySerializationFlags.HasLegacyImageQuality;
             }
         }
 
+        [Property("JPEG Quality")]
+        [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
+                         PropertySerializationFlags.HasJpegQuality2)]
+        protected int? JpegQualityOld
+        {
+            get => _jpegQuality;
+            set => _jpegQuality = value;
+        }
+
         [Property("JPEG Quality 2")]
-        [PropertyInclude(EngineSource.From2004)]
-        public int JpegQuality { get; set; }
+        [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
+        [PropertyInclude(PropertySerializationFlags.HasJpegQuality2)]
+        public int? JpegQuality
+        {
+            get { return _jpegQuality; }
+            set
+            {
+                if (_jpegQuality == null)
+                {
+                    Flags |= PropertySerializationFlags.HasJpegQuality2;
+                }
+                _jpegQuality = value;
+            }
+        }
 
         [Property("DDS")]
-        [PropertyInclude(EngineSource.FromPS3)]
-        public bool IsDds { get; set; }
+        [PropertyInclude(PropertySerializationFlags.HasDdsSupport)]
+        public bool? IsDds
+        {
+            get { return _isDds; }
+            set
+            {
+                if (_isDds == null)
+                {
+                    Flags |= PropertySerializationFlags.HasDdsSupport;
+                }
+                _isDds = value;
+            }
+        }
 
         [Property("Needs Buffer")]
-        [PropertyInclude(EngineSource.FromPS3)]
-        public bool NeedsBuffer { get; set; }
+        [PropertyInclude(PropertySerializationFlags.HasDdsSupport)]
+        public bool? NeedsBuffer
+        {
+            get { return _needsBuffer; }
+            set
+            {
+                if (_needsBuffer == null)
+                {
+                    Flags |= PropertySerializationFlags.HasDdsSupport;
+                }
+                _needsBuffer = value;
+            }
+        }
 
-        private bool _mipmapForNativeVersion;
+        // TN: Present in Swarm Gold, Ricochet Infinity HD, Big Kahuna Reef 3,
+        // Build In Time, and Costume Chaos.
         [Property("Mipmap For Native Version")]
-        [PropertyInclude(EngineSource.From2008)]
-        public bool MipmapForNativeVersion
+        [PropertyInclude(PropertySerializationFlags.HasMipmapSupport |
+                         PropertySerializationFlags.HasDdsSupport)]
+        public bool? MipmapForNativeVersion
         {
             get { return _mipmapForNativeVersion; }
             set
             {
+                if (_mipmapForNativeVersion == null)
+                {
+                    Flags |= PropertySerializationFlags.HasMipmapSupport;
+                }
                 _mipmapForNativeVersion = value;
-                _hasMipmapProperty = true;
             }
+        }
+
+        public Sequence()
+        {
+            Flags = PropertySerializationFlags.None;
         }
 
         internal static Sequence FromStream(
@@ -167,6 +282,7 @@ namespace NuVelocity
             bool isFont = false;
             bool isHD = false;
             bool isEmpty = false;
+            bool isDds = false;
             sequenceSpriteSheet = null;
             maskData = null;
             int atlasWidth = 0;
@@ -175,6 +291,7 @@ namespace NuVelocity
             if (propertiesStream != null)
             {
                 hasProperties = PropertySerializer.Deserialize(propertiesStream, sequence);
+                isDds = sequence.Flags.HasFlag(PropertySerializationFlags.HasDdsSupport);
             }
 
             using BinaryReader reader = new(sequenceStream);
@@ -195,8 +312,9 @@ namespace NuVelocity
                 embeddedLists = reader.ReadBytes(embeddedListsSize);
 
                 hasProperties = PropertySerializer.Deserialize(embeddedLists, sequence);
+                isDds = sequence.Flags.HasFlag(PropertySerializationFlags.HasDdsSupport);
 
-                if (sequence.IsDds)
+                if (isDds)
                 {
                     long distanceToEof = sequenceStream.Length - sequenceStream.Position;
                     if (distanceToEof == 0)
@@ -298,7 +416,7 @@ namespace NuVelocity
             }
             else if (isHD)
             {
-                if (!sequence.IsDds)
+                if (!isDds)
                 {
                     spritesheet = FrameUtils.LoadRgbaImage(sequenceSpriteSheet, atlasWidth, atlasHeight);
                 }
@@ -319,64 +437,56 @@ namespace NuVelocity
             // XXX: Wik and earlier don't provide all the information in
             // the sequence property list. Assume that we're lacking info
             // if JPEG quality is set to 0 or if FPS values don't match.
-            bool fpsMismatch = sequence.FramesPerSecond != frameInfoList.FramesPerSecond;
-            bool qualityMissing = sequence.JpegQuality == 0;
-
-            // Try to take properties from the flags property. However, not
-            // all sequence properties are represented in the Flags property.
-            if (!hasProperties || fpsMismatch || qualityMissing)
+            bool fpsMissing = sequence.FramesPerSecond == null;
+            bool qualityMissing = sequence.JpegQuality == null;
+            if (hasProperties)
             {
-                sequence.CenterHotSpot = frameInfoList.Flags.HasFlag(
-                    SequenceFlags.CenterHotSpot);
-                sequence.BlendedWithBlack = frameInfoList.Flags.HasFlag(
-                    SequenceFlags.BlendedWithBlack);
-                sequence.CropClor0 = frameInfoList.Flags.HasFlag(
-                    SequenceFlags.CropColor0);
-                sequence.Use8BitAlpha = frameInfoList.Flags.HasFlag(
-                    SequenceFlags.Use8BitAlpha);
-                sequence.IsRle = frameInfoList.Flags.HasFlag(
-                    SequenceFlags.RunLengthEncode);
-                sequence.DitherImage = frameInfoList.Flags.HasFlag(
-                    SequenceFlags.DoDither);
-                sequence.IsLossless = frameInfoList.Flags.HasFlag(
-                    SequenceFlags.Lossless);
-                sequence.FramesPerSecond = frameInfoList.FramesPerSecond;
-                sequence.BlitType = frameInfoList.BlitTypeEnum;
-                // XXX: Assume maximum image quality.
-                sequence.JpegQuality = 100;
-            }
-
-            // Determine engine source based on a few indicators.
-            if (!hasProperties || sequence._hasLegacyProperty)
-            {
-                sequence.Source = EngineSource.From1998;
-            }
-            else if (isHD)
-            {
-                sequence.Source = EngineSource.FromPS3;
-            }
-            else if (sequence._hasTypoProperty)
-            {
-                sequence.Source = EngineSource.From2004;
-                if (sequence._hasMipmapProperty)
+                if (fpsMissing || qualityMissing)
                 {
-                    sequence.Source = EngineSource.From2008;
+                    sequence.Flags |= PropertySerializationFlags.Compact;
                 }
             }
             else
             {
-                // XXX: We should check based on missing properties, especially
-                // in the case of Wik and Ricochet Lost Worlds (Xbox) instead
-                // of relying only on FPS mismatch.
-                if (fpsMismatch)
-                {
-                    sequence.Source = EngineSource.From2004;
-                }
-                sequence.Source = EngineSource.From2009;
+                // XXX: Assume legacy format is in use.
+                sequence.Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+            }
+
+            // Try to take properties from the flags property. However, not
+            // all sequence properties are represented in the Flags property.
+            sequence.CenterHotSpot = frameInfoList.Flags.HasFlag(
+                SequenceFlags.CenterHotSpot);
+            sequence.BlendedWithBlack = frameInfoList.Flags.HasFlag(
+                SequenceFlags.BlendedWithBlack);
+            sequence.CropClor0 = frameInfoList.Flags.HasFlag(
+                SequenceFlags.CropColor0);
+            sequence.Use8BitAlpha = frameInfoList.Flags.HasFlag(
+                SequenceFlags.Use8BitAlpha);
+            sequence.IsRle = frameInfoList.Flags.HasFlag(
+                SequenceFlags.RunLengthEncode);
+            sequence.DitherImage = frameInfoList.Flags.HasFlag(
+                SequenceFlags.DoDither);
+            sequence.IsLossless = frameInfoList.Flags.HasFlag(
+                SequenceFlags.Lossless);
+            if (sequence.BlitType != null &&
+                sequence.BlitType != frameInfoList.BlitTypeEnum)
+            {
+                throw new InvalidDataException();
+            }
+            sequence.BlitType = frameInfoList.BlitTypeEnum;
+
+            if (fpsMissing)
+            {
+                sequence.FramesPerSecond = frameInfoList.FramesPerSecond;
+            }
+            if (qualityMissing)
+            {
+                // XXX: Assume maximum image quality.
+                sequence._jpegQuality = 100;
             }
 
             // Return early if there's no need to process the image further.
-            if (spritesheet == null && !sequence.IsDds)
+            if (spritesheet == null && !isDds)
             {
                 return sequence;
             }
@@ -386,8 +496,8 @@ namespace NuVelocity
                 return sequence;
             }
 
-            int baseXOffset = sequence.XOffset;
-            int baseYOffset = sequence.YOffset;
+            int baseXOffset = sequence.XOffset ?? 0;
+            int baseYOffset = sequence.YOffset ?? 0;
             bool centerHotSpot = frameInfoList.Flags.HasFlag(SequenceFlags.CenterHotSpot);
 
             Image[] images = new Image[frameInfoList.Values.Length];
@@ -419,7 +529,7 @@ namespace NuVelocity
                     frameInfo.Bottom - frameInfo.Top);
 
                 Image image = null;
-                if (sequence.IsDds)
+                if (isDds)
                 {
                     int pixels = cropRect.Width * cropRect.Height;
                     byte[] buffer = new byte[pixels];

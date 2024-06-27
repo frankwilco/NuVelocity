@@ -5,11 +5,16 @@
         Inherited = false, AllowMultiple = false)]
     public sealed class PropertyExcludeAttribute : Attribute
     {
-        public PropertyExcludeAttribute(EngineSource source)
+        public PropertyExcludeAttribute()
         {
-            Source = source;
+            Flags = PropertySerializationFlags.None;
         }
 
-        public EngineSource Source { get; }
+        public PropertyExcludeAttribute(PropertySerializationFlags flags)
+        {
+            Flags = flags;
+        }
+
+        public PropertySerializationFlags Flags { get; }
     }
 }

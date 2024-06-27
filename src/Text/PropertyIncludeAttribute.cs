@@ -5,11 +5,16 @@
         Inherited = false, AllowMultiple = false)]
     public sealed class PropertyIncludeAttribute : Attribute
     {
-        public PropertyIncludeAttribute(EngineSource source)
+        public PropertyIncludeAttribute()
         {
-            Source = source;
+            Flags = PropertySerializationFlags.None;
         }
 
-        public EngineSource Source { get; }
+        public PropertyIncludeAttribute(PropertySerializationFlags flags)
+        {
+            Flags = flags;
+        }
+
+        public PropertySerializationFlags Flags { get; }
     }
 }

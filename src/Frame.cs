@@ -9,8 +9,11 @@ namespace NuVelocity
     {
         private const byte kFlagCompressed = 0x01;
 
-        private bool _hasLegacyQualityProperty = false;
-        private bool _hasLegacyRemoveProperty = false;
+        private bool? _mipmapForNativeVersion;
+        private int? _finalBitDepth;
+        private bool? _removeBlackBlending;
+        private bool? _removeDeadAlpha;
+        private int? _jpegQuality;
 
         public Image Texture { get; set; }
 
@@ -18,143 +21,184 @@ namespace NuVelocity
 
         public int Height => Texture.Height;
 
-        public EngineSource Source { get; set; }
+        public PropertySerializationFlags Flags { get; set; }
 
         [Property("Comment")]
         [PropertyDynamic]
-        public string Comment { get; set; }
+        public string? Comment { get; set; }
 
         [Property("Palette")]
         [PropertyDynamic]
-        public PaletteHolder Palette { get; set; }
+        public PaletteHolder? Palette { get; set; }
 
         [Property("Run Length Encode")]
-        public bool IsRle { get; set; }
+        public bool? IsRle { get; set; }
 
         [Property("RLE All Copy")]
-        public bool IsRleAllCopy { get; set; }
+        [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
+        public bool? IsRleAllCopy { get; set; }
 
         [Property("Crop Color 0")]
-        public bool CropColor0 { get; set; }
+        public bool? CropColor0 { get; set; }
 
         [Property("Do Dither")]
-        public bool DitherImage { get; set; }
+        [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
+        public bool? DitherImage { get; set; }
 
-        // XXX: Present in some Ricochet Xtreme frame properties file.
-        // Read, but don't serialize it.
+        // TN: Present in some Ricochet Xtreme frame files.
         [Property("Dither")]
-        [PropertyExclude(EngineSource.From1998)]
-        protected bool DitherImageOld
+        [PropertyInclude(PropertySerializationFlags.HasSimpleFormat)]
+        protected bool? DitherImageOld
         {
             get { return DitherImage; }
-            set { DitherImage = value; }
+            set
+            {
+                DitherImage = value;
+                Flags |= PropertySerializationFlags.HasSimpleFormat;
+            }
         }
 
         [Property("Change Bit Depth")]
-        [PropertyInclude(EngineSource.From2004)]
-        public bool ChangeBitDepth { get; set; }
+        [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
+        public bool? ChangeBitDepth { get; set; }
 
         [Property("Loss Less")]
-        [PropertyExclude(EngineSource.From2004)]
-        protected bool IsLosslessOld
+        [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
+        protected bool? IsLosslessOld
         {
             get { return IsLossless; }
             set
             {
                 IsLossless = value;
-                _hasLegacyQualityProperty = true;
+                Flags |= PropertySerializationFlags.HasLegacyImageQuality;
             }
         }
 
         [Property("Loss Less 2")]
-        [PropertyInclude(EngineSource.From2004)]
-        public bool IsLossless { get; set; }
+        [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
+        public bool? IsLossless { get; set; }
 
         [Property("Quality")]
-        [PropertyExclude(EngineSource.From2004)]
-        protected int QualityOld
+        [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
+        protected int? QualityOld
         {
-            get { return JpegQuality; }
+            get { return _jpegQuality; }
             set
             {
-                JpegQuality = value;
-                _hasLegacyQualityProperty = true;
+                _jpegQuality = value;
+                Flags |= PropertySerializationFlags.HasLegacyImageQuality;
             }
         }
 
-        // XXX: I've seen this only in some frame properties file
-        // with Ricochet Lost Worlds. Read, but don't serialize it.
+        // TN: Present in some Ricochet Lost Worlds frame files.
         [Property("JPEG Quality")]
-        [PropertyExclude(EngineSource.From1998)]
-        protected int JpegQualityOld
+        [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
+                         PropertySerializationFlags.HasJpegQuality2)]
+        protected int? JpegQualityOld
         {
-            get { return JpegQuality; }
-            set { JpegQuality = value; }
+            get => _jpegQuality;
+            set => _jpegQuality = value;
         }
 
         [Property("JPEG Quality 2")]
-        [PropertyInclude(EngineSource.From2004)]
-        public int JpegQuality { get; set; }
+        [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
+        [PropertyInclude(PropertySerializationFlags.HasJpegQuality2)]
+        public int? JpegQuality
+        {
+            get { return _jpegQuality; }
+            set
+            {
+                if (_jpegQuality == null)
+                {
+                    Flags |= PropertySerializationFlags.HasJpegQuality2;
+                }
+                _jpegQuality = value;
+            }
+        }
 
         [Property("Center Hot Spot")]
-        public bool CenterHotSpot { get; set; }
+        [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
+        public bool? CenterHotSpot { get; set; }
 
         [Property("Blended With Black")]
-        [PropertyInclude(EngineSource.From2004)]
-        public bool BlendedWithBlack { get; set; }
+        [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
+                         PropertySerializationFlags.HasSimpleFormat)]
+        public bool? BlendedWithBlack { get; set; }
 
-        private bool _removeDeadAlpha;
         [Property("Remove Dead Alpha")]
-        [PropertyExclude(EngineSource.From2001)]
-        public bool RemoveDeadAlpha
+        [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
+        [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
+        public bool? RemoveDeadAlpha
         {
             get { return _removeDeadAlpha; }
             set
             {
+                if (_removeDeadAlpha == null)
+                {
+                    Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+                }
                 _removeDeadAlpha = value;
-                _hasLegacyRemoveProperty = true;
             }
         }
 
-        private bool _removeBlackBlending;
         [Property("Remove Black Blending")]
-        [PropertyExclude(EngineSource.From2001)]
-        public bool RemoveBlackBlending
+        [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
+        [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
+        public bool? RemoveBlackBlending
         {
             get { return _removeBlackBlending; }
             set
             {
+                if (_removeBlackBlending == null)
+                {
+                    Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+                }
                 _removeBlackBlending = value;
-                _hasLegacyRemoveProperty = true;
             }
         }
 
         [Property("Load Black Biased")]
-        public bool LoadBlackBiased { get; set; }
+        [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
+        public bool? LoadBlackBiased { get; set; }
 
-        private int _finalBitDepth;
         [Property("Final Bit Depth")]
-        [PropertyExclude(EngineSource.From2001)]
-        public int FinalBitDepth
+        [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
+        [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
+        public int? FinalBitDepth
         {
             get { return _finalBitDepth; }
             set
             {
+                if (_finalBitDepth == null)
+                {
+                    Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+                }
                 _finalBitDepth = value;
-                _hasLegacyRemoveProperty = true;
             }
         }
 
         [Property("Blit Type")]
-        public BlitType BlitType { get; set; }
+        [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
+        public BlitType? BlitType { get; set; }
 
         [Property("Mipmap For Native Version")]
-        [PropertyInclude(EngineSource.From2008)]
-        public bool MipmapForNativeVersion { get; set; }
+        [PropertyInclude(PropertySerializationFlags.HasMipmapSupport)]
+        public bool? MipmapForNativeVersion
+        {
+            get { return _mipmapForNativeVersion; }
+            set
+            {
+                if (_mipmapForNativeVersion == null)
+                {
+                    Flags |= PropertySerializationFlags.HasMipmapSupport;
+                }
+                _mipmapForNativeVersion = value;
+            }
+        }
 
         public Frame(Image image = null)
         {
-            Source = EngineSource.From2008;
+            Flags = PropertySerializationFlags.None;
             Texture = image;
         }
 
@@ -253,7 +297,7 @@ namespace NuVelocity
                 image = FrameUtils.LoadJpegImage(imageData, maskData);
             }
 
-            if (frame.CenterHotSpot)
+            if (frame.CenterHotSpot.GetValueOrDefault())
             {
                 float deltaX = offset.X - image.Width / 2f;
                 float deltaY = offset.Y - image.Height / 2f;
@@ -297,17 +341,6 @@ namespace NuVelocity
             }
 
             frame.Texture = image;
-
-            // The remove alpha and blending properties were removed in 2001,
-            // while the old quality properties were removed in 2004.
-            if (frame._hasLegacyQualityProperty)
-            {
-                frame.Source = EngineSource.From2001;
-                if (frame._hasLegacyRemoveProperty)
-                {
-                    frame.Source = EngineSource.From1998;
-                }
-            }
 
             return frame;
         }
