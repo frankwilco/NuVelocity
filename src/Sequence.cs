@@ -454,26 +454,28 @@ namespace NuVelocity
 
             // Try to take properties from the flags property. However, not
             // all sequence properties are represented in the Flags property.
-            sequence.CenterHotSpot = frameInfoList.Flags.HasFlag(
-                SequenceFlags.CenterHotSpot);
-            sequence.BlendedWithBlack = frameInfoList.Flags.HasFlag(
-                SequenceFlags.BlendedWithBlack);
-            sequence.CropClor0 = frameInfoList.Flags.HasFlag(
-                SequenceFlags.CropColor0);
-            sequence.Use8BitAlpha = frameInfoList.Flags.HasFlag(
-                SequenceFlags.Use8BitAlpha);
-            sequence.IsRle = frameInfoList.Flags.HasFlag(
+            sequence.CenterHotSpot ??= frameInfoList.Flags.HasFlag(
+                    SequenceFlags.CenterHotSpot);
+            sequence.BlendedWithBlack ??= frameInfoList.Flags.HasFlag(
+                    SequenceFlags.BlendedWithBlack);
+            sequence.CropClor0 ??= frameInfoList.Flags.HasFlag(
+                    SequenceFlags.CropColor0);
+            sequence.Use8BitAlpha ??= frameInfoList.Flags.HasFlag(
+                    SequenceFlags.Use8BitAlpha);
+            sequence.IsRle ??= frameInfoList.Flags.HasFlag(
                 SequenceFlags.RunLengthEncode);
-            sequence.DitherImage = frameInfoList.Flags.HasFlag(
+            sequence.DitherImage ??= frameInfoList.Flags.HasFlag(
                 SequenceFlags.DoDither);
-            sequence.IsLossless = frameInfoList.Flags.HasFlag(
+            sequence.IsLossless ??= frameInfoList.Flags.HasFlag(
                 SequenceFlags.Lossless);
-            if (sequence.BlitType != null &&
-                sequence.BlitType != frameInfoList.BlitTypeEnum)
+
+            if (sequence.BlitType == null)
             {
+                sequence.BlitType ??= frameInfoList.BlitTypeEnum;
+            }
+            if (sequence.BlitType != frameInfoList.BlitTypeEnum) {
                 throw new InvalidDataException();
             }
-            sequence.BlitType = frameInfoList.BlitTypeEnum;
 
             if (fpsMissing)
             {
