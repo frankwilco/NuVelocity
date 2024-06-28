@@ -80,38 +80,38 @@ namespace NuVelocity
             }
         }
 
-        [Property("Frames Per Second")]
+        [Property("Frames Per Second", defaultValue: 15)]
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         public float? FramesPerSecond { get; set; }
 
-        [Property("Blit Type")]
+        [Property("Blit Type", defaultValue: NuVelocity.BlitType.TransparentMask)]
         public BlitType? BlitType { get; set; }
 
-        [Property("X Offset")]
+        [Property("X Offset", defaultValue: 0)]
         public int? XOffset { get; set; }
 
-        [Property("Y Offset")]
+        [Property("Y Offset", defaultValue: 0)]
         public int? YOffset { get; set; }
 
-        [Property("Use Every")]
+        [Property("Use Every", defaultValue: 1)]
         [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
                          PropertySerializationFlags.HasSimpleFormat)]
         public int? UseEvery { get; set; }
 
-        [Property("Always Include Last Frame")]
+        [Property("Always Include Last Frame", defaultValue: false)]
         [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
                          PropertySerializationFlags.HasSimpleFormat)]
         public bool? AlwaysIncludeLastFrame { get; set; }
 
-        [Property("Center Hot Spot")]
+        [Property("Center Hot Spot", defaultValue: true)]
         public bool? CenterHotSpot { get; set; }
 
-        [Property("Blended With Black")]
+        [Property("Blended With Black", defaultValue: true)]
         [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
                          PropertySerializationFlags.HasSimpleFormat)]
         public bool? BlendedWithBlack { get; set; }
 
-        [Property("Crop Color 0")]
+        [Property("Crop Color 0", defaultValue: true)]
         [PropertyInclude(PropertySerializationFlags.HasFixedCropColor0Name)]
         public bool? CropColor0
         {
@@ -126,7 +126,7 @@ namespace NuVelocity
             }
         }
 
-        [Property("Crop Clor 0")]
+        [Property("Crop Clor 0", defaultValue: true)]
         [PropertyExclude(PropertySerializationFlags.HasFixedCropColor0Name)]
         protected bool? CropClor0
         {
@@ -134,20 +134,20 @@ namespace NuVelocity
             set { _cropColor0 = value; }
         }
 
-        [Property("Use 8 Bit Alpha")]
+        [Property("Use 8 Bit Alpha", defaultValue: false)]
         public bool? Use8BitAlpha { get; set; }
 
-        [Property("Run Length Encode")]
+        [Property("Run Length Encode", defaultValue: true)]
         [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
                          PropertySerializationFlags.HasSimpleFormat)]
         public bool? IsRle { get; set; }
 
-        [Property("Do Dither")]
+        [Property("Do Dither", defaultValue: true)]
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         public bool? DitherImage { get; set; }
 
         // TN: Present in Star Trek Away Team sequence files.
-        [Property("Dither")]
+        [Property("Dither", defaultValue: true)]
         [PropertyInclude(PropertySerializationFlags.HasSimpleFormat)]
         protected bool? DitherImageOld
         {
@@ -159,7 +159,7 @@ namespace NuVelocity
             }
         }
 
-        [Property("Loss Less")]
+        [Property("Loss Less", defaultValue: false)]
         [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         protected bool? IsLosslessOld
@@ -172,12 +172,12 @@ namespace NuVelocity
             }
         }
 
-        [Property("Loss Less 2")]
+        [Property("Loss Less 2", defaultValue: false)]
         [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
                          PropertySerializationFlags.HasSimpleFormat)]
         public bool? IsLossless { get; set; }
 
-        [Property("Quality")]
+        [Property("Quality", defaultValue: 65)]
         [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
         protected int? QualityOld
         {
@@ -189,7 +189,7 @@ namespace NuVelocity
             }
         }
 
-        [Property("JPEG Quality")]
+        [Property("JPEG Quality", defaultValue: 80)]
         [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
                          PropertySerializationFlags.HasJpegQuality2)]
         protected int? JpegQualityOld
@@ -198,7 +198,7 @@ namespace NuVelocity
             set => _jpegQuality = value;
         }
 
-        [Property("JPEG Quality 2")]
+        [Property("JPEG Quality 2", defaultValue: 80)]
         [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
         [PropertyInclude(PropertySerializationFlags.HasJpegQuality2)]
         public int? JpegQuality
@@ -246,7 +246,7 @@ namespace NuVelocity
 
         // TN: Present in Swarm Gold, Ricochet Infinity HD, Big Kahuna Reef 3,
         // Build In Time, and Costume Chaos.
-        [Property("Mipmap For Native Version")]
+        [Property("Mipmap For Native Version", defaultValue: true)]
         [PropertyInclude(PropertySerializationFlags.HasMipmapSupport |
                          PropertySerializationFlags.HasDdsSupport)]
         public bool? MipmapForNativeVersion

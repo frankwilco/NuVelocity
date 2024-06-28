@@ -20,7 +20,7 @@ namespace NuVelocity.Text
             bool ignoreNull = false)
         {
             var propAttr = prop.GetCustomAttribute<PropertyAttribute>();
-            object propValue = prop.GetValue(target);
+            object? propValue = prop.GetValue(target);
             // If we're supposed to ignore empty properties, return early.
             if (ignoreNull && propValue == null)
             {
@@ -32,8 +32,13 @@ namespace NuVelocity.Text
             // Write property value, if available.
             if (propValue == null)
             {
-                builder.AppendLine();
-                return true;
+                // Return early if there's no provided default value.
+                if (propAttr.DefaultValue == null)
+                {
+                    builder.AppendLine();
+                    return true;
+                }
+                propValue = propAttr.DefaultValue;
             }
             // 1: Write the value's properties if it's marked with the
             // property root attribute.

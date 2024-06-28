@@ -31,22 +31,22 @@ namespace NuVelocity
         [PropertyDynamic]
         public PaletteHolder? Palette { get; set; }
 
-        [Property("Run Length Encode")]
+        [Property("Run Length Encode", defaultValue: true)]
         public bool? IsRle { get; set; }
 
-        [Property("RLE All Copy")]
+        [Property("RLE All Copy", defaultValue: false)]
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         public bool? IsRleAllCopy { get; set; }
 
-        [Property("Crop Color 0")]
+        [Property("Crop Color 0", defaultValue: true)]
         public bool? CropColor0 { get; set; }
 
-        [Property("Do Dither")]
+        [Property("Do Dither", defaultValue: true)]
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         public bool? DitherImage { get; set; }
 
         // TN: Present in some Ricochet Xtreme frame files.
-        [Property("Dither")]
+        [Property("Dither", defaultValue: true)]
         [PropertyInclude(PropertySerializationFlags.HasSimpleFormat)]
         protected bool? DitherImageOld
         {
@@ -62,7 +62,7 @@ namespace NuVelocity
         [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
         public bool? ChangeBitDepth { get; set; }
 
-        [Property("Loss Less")]
+        [Property("Loss Less", defaultValue: false)]
         [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
         protected bool? IsLosslessOld
         {
@@ -74,11 +74,11 @@ namespace NuVelocity
             }
         }
 
-        [Property("Loss Less 2")]
+        [Property("Loss Less 2", defaultValue: false)]
         [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
         public bool? IsLossless { get; set; }
 
-        [Property("Quality")]
+        [Property("Quality", defaultValue: 80)]
         [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
         protected int? QualityOld
         {
@@ -91,7 +91,7 @@ namespace NuVelocity
         }
 
         // TN: Present in some Ricochet Lost Worlds frame files.
-        [Property("JPEG Quality")]
+        [Property("JPEG Quality", defaultValue: 80)]
         [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
                          PropertySerializationFlags.HasJpegQuality2)]
         protected int? JpegQualityOld
@@ -100,7 +100,7 @@ namespace NuVelocity
             set => _jpegQuality = value;
         }
 
-        [Property("JPEG Quality 2")]
+        [Property("JPEG Quality 2", defaultValue: 80)]
         [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
         [PropertyInclude(PropertySerializationFlags.HasJpegQuality2)]
         public int? JpegQuality
@@ -116,16 +116,16 @@ namespace NuVelocity
             }
         }
 
-        [Property("Center Hot Spot")]
+        [Property("Center Hot Spot", defaultValue: false)]
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         public bool? CenterHotSpot { get; set; }
 
-        [Property("Blended With Black")]
+        [Property("Blended With Black", defaultValue: true)]
         [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
                          PropertySerializationFlags.HasSimpleFormat)]
         public bool? BlendedWithBlack { get; set; }
 
-        [Property("Remove Dead Alpha")]
+        [Property("Remove Dead Alpha", defaultValue: true)]
         [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         public bool? RemoveDeadAlpha
@@ -141,7 +141,7 @@ namespace NuVelocity
             }
         }
 
-        [Property("Remove Black Blending")]
+        [Property("Remove Black Blending", defaultValue: true)]
         [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         public bool? RemoveBlackBlending
@@ -157,11 +157,11 @@ namespace NuVelocity
             }
         }
 
-        [Property("Load Black Biased")]
+        [Property("Load Black Biased", defaultValue: false)]
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         public bool? LoadBlackBiased { get; set; }
 
-        [Property("Final Bit Depth")]
+        [Property("Final Bit Depth", defaultValue: 0)]
         [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         public int? FinalBitDepth
@@ -177,11 +177,11 @@ namespace NuVelocity
             }
         }
 
-        [Property("Blit Type")]
+        [Property("Blit Type", defaultValue: NuVelocity.BlitType.TransparentMask)]
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         public BlitType? BlitType { get; set; }
 
-        [Property("Mipmap For Native Version")]
+        [Property("Mipmap For Native Version", defaultValue: true)]
         [PropertyInclude(PropertySerializationFlags.HasMipmapSupport)]
         public bool? MipmapForNativeVersion
         {

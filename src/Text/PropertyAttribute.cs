@@ -8,15 +8,18 @@
         public string Name { get; }
         public string Description { get; }
         public bool Editable { get; }
+        public object? DefaultValue { get; }
 
         public PropertyAttribute(
             string name,
             string description = "",
-            bool editable = true)
+            bool editable = true,
+            object? defaultValue = null)
         {
             Name = name;
             Description = description;
             Editable = editable;
+            DefaultValue = defaultValue;
         }
     }
 }
