@@ -22,13 +22,13 @@
             }
             set
             {
-                BlitTypeEnum = (BlitType)value;
+                BlitTypeEnum = (BlitType1)value;
             }
         }
 
         [Property("Blit Type")]
         [PropertyInclude(PropertySerializationFlags.HasTextBlitType)]
-        public BlitType BlitTypeEnum { get; set; }
+        public BlitType1 BlitTypeEnum { get; set; }
 
         [Property("FPS")]
         public float FramesPerSecond { get; set; }

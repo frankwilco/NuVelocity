@@ -177,9 +177,9 @@ namespace NuVelocity
             }
         }
 
-        [Property("Blit Type", defaultValue: NuVelocity.BlitType.TransparentMask)]
+        [Property("Blit Type", defaultValue: BlitType1.TransparentMask)]
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
-        public BlitType? BlitType { get; set; }
+        public BlitType1? BlitType { get; set; }
 
         [Property("Mipmap For Native Version", defaultValue: true)]
         [PropertyInclude(PropertySerializationFlags.HasMipmapSupport)]

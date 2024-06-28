@@ -84,8 +84,8 @@ namespace NuVelocity
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         public float? FramesPerSecond { get; set; }
 
-        [Property("Blit Type", defaultValue: NuVelocity.BlitType.TransparentMask)]
-        public BlitType? BlitType { get; set; }
+        [Property("Blit Type", defaultValue: BlitType1.TransparentMask)]
+        public BlitType1? BlitType { get; set; }
 
         [Property("X Offset", defaultValue: 0)]
         public int? XOffset { get; set; }
