@@ -58,7 +58,7 @@ namespace NuVelocity
             }
         }
 
-        [Property("Change Bit Depth")]
+        [Property("Change Bit Depth", defaultValue: 1)]
         [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
         public bool? ChangeBitDepth { get; set; }
 
