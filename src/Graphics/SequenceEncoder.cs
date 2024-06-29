@@ -283,12 +283,6 @@ public abstract class SequenceEncoder
         {
             Sequence.FramesPerSecond = SequenceFrameInfoList.FramesPerSecond;
         }
-
-        if (qualityMissing)
-        {
-            // XXX: Assume maximum image quality.
-            Sequence._jpegQuality = 100;
-        }
     }
 
     protected abstract void LoadMode1Sequence();

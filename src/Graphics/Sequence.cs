@@ -8,8 +8,7 @@ public class Sequence
     private string? _pokeAudio;
     private bool? _editorOnly;
     private bool? _cropColor0;
-    // FIXME: restore to private accessibility.
-    internal int? _jpegQuality;
+    private int? _jpegQuality;
     private bool? _isDds;
     private bool? _needsBuffer;
 
@@ -112,7 +111,6 @@ public class Sequence
         }
     }
 
-    // FIXME: restore to protected accessibility.
     [Property("Crop Clor 0", defaultValue: true)]
     [PropertyExclude(PropertySerializationFlags.HasFixedCropColor0Name)]
     internal bool? CropClor0
@@ -166,7 +164,7 @@ public class Sequence
 
     [Property("Quality", defaultValue: 65)]
     [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
-    protected int? QualityOld
+    protected int? Quality1
     {
         get { return _jpegQuality; }
         set
@@ -176,10 +174,17 @@ public class Sequence
         }
     }
 
+    [Property("Quality2", defaultValue: 65)]
+    protected int? Quality2
+    {
+        get { return _jpegQuality; }
+        set { _jpegQuality = value; }
+    }
+
     [Property("JPEG Quality", defaultValue: 80)]
     [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
                      PropertySerializationFlags.HasJpegQuality2)]
-    protected int? JpegQualityOld
+    protected int? JpegQuality1
     {
         get => _jpegQuality;
         set => _jpegQuality = value;
@@ -188,7 +193,7 @@ public class Sequence
     [Property("JPEG Quality 2", defaultValue: 80)]
     [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
     [PropertyInclude(PropertySerializationFlags.HasJpegQuality2)]
-    public int? JpegQuality
+    protected int? JpegQuality2
     {
         get { return _jpegQuality; }
         set
@@ -199,6 +204,12 @@ public class Sequence
             }
             _jpegQuality = value;
         }
+    }
+
+    public int? JpegQuality
+    {
+        get => _jpegQuality;
+        set => _jpegQuality = value;
     }
 
     [Property("DDS")]
