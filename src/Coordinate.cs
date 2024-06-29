@@ -1,37 +1,36 @@
-﻿namespace NuVelocity
-{
-    [PropertyRoot("CCoordinate", "Coordinate", true)]
-    public class Coordinate : IPropertySerializable
-    {
-        public int X { get; set; }
-        public int Y { get; set; }
+﻿namespace NuVelocity;
 
-        public string Serialize()
+[PropertyRoot("CCoordinate", "Coordinate", true)]
+public class Coordinate : IPropertySerializable
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+
+    public string Serialize()
+    {
+        return $"{X},{Y}";
+    }
+
+    public void Deserialize(string context)
+    {
+        if (string.IsNullOrWhiteSpace(context))
         {
-            return $"{X},{Y}";
+            return;
         }
 
-        public void Deserialize(string context)
+        string[] pair = context.Split(',');
+        if (pair.Length != 2)
         {
-            if (string.IsNullOrWhiteSpace(context))
-            {
-                return;
-            }
+            return;
+        }
 
-            string[] pair = context.Split(',');
-            if (pair.Length != 2)
-            {
-                return;
-            }
-
-            if (int.TryParse(pair[0], out int xValue))
-            {
-                X = xValue;
-            }
-            if (int.TryParse(pair[1], out int yValue))
-            {
-                Y = yValue;
-            }
+        if (int.TryParse(pair[0], out int xValue))
+        {
+            X = xValue;
+        }
+        if (int.TryParse(pair[1], out int yValue))
+        {
+            Y = yValue;
         }
     }
 }

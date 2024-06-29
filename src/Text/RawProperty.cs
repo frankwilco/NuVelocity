@@ -1,26 +1,25 @@
-﻿namespace NuVelocity.Text
+﻿namespace NuVelocity.Text;
+
+public class RawProperty
 {
-    public class RawProperty
+    protected const string kDefaultName = "CObject";
+    protected const string kDefaultDescription = "";
+
+    public RawProperty(string name = kDefaultName,
+                    string description = kDefaultDescription,
+                    object value = null)
     {
-        protected const string kDefaultName = "CObject";
-        protected const string kDefaultDescription = "";
+        Name = name;
+        Description = description;
+        Value = value;
+    }
 
-        public RawProperty(string name = kDefaultName,
-                        string description = kDefaultDescription,
-                        object value = null)
-        {
-            Name = name;
-            Description = description;
-            Value = value;
-        }
+    public string Name { get; protected set; }
+    public string Description { get; protected set; }
+    public object Value { get; protected set; }
 
-        public string Name { get; protected set; }
-        public string Description { get; protected set; }
-        public object Value { get; protected set; }
-
-        public override string ToString()
-        {
-            return $"{Name}={Value}";
-        }
+    public override string ToString()
+    {
+        return $"{Name}={Value}";
     }
 }
