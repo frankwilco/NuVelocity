@@ -1,4 +1,4 @@
-﻿namespace NuVelocity
+﻿namespace NuVelocity.Graphics
 {
     [PropertyRoot("CSequenceFrameInfoList", "Sequence Frame Info List")]
     public class SequenceFrameInfoList

@@ -1,4 +1,4 @@
-﻿namespace NuVelocity
+﻿namespace NuVelocity.Graphics
 {
     [Flags]
     public enum SequenceFlags

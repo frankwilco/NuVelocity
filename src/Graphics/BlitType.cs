@@ -1,4 +1,4 @@
-﻿namespace NuVelocity
+﻿namespace NuVelocity.Graphics
 {
     public enum BlitType
     {

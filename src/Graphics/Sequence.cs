@@ -4,9 +4,8 @@ using ICSharpCode.SharpZipLib.Zip.Compression;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System.ComponentModel;
 
-namespace NuVelocity
+namespace NuVelocity.Graphics
 {
     [PropertyRoot("CSequence", "Sequence")]
     public class Sequence
@@ -85,7 +84,7 @@ namespace NuVelocity
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         public float? FramesPerSecond { get; set; }
 
-        [Property("Blit Type", defaultValue: NuVelocity.BlitType.TransparentMask)]
+        [Property("Blit Type", defaultValue: Graphics.BlitType.TransparentMask)]
         public BlitType? BlitType { get; set; }
 
         [Property("X Offset", defaultValue: 0)]

@@ -2,7 +2,7 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
-namespace NuVelocity
+namespace NuVelocity.Graphics
 {
     [PropertyRoot("CStandAloneFrame", "Stand Alone Frame")]
     public class Frame
@@ -177,7 +177,7 @@ namespace NuVelocity
             }
         }
 
-        [Property("Blit Type", defaultValue: NuVelocity.BlitType.TransparentMask)]
+        [Property("Blit Type", defaultValue: Graphics.BlitType.TransparentMask)]
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         public BlitType? BlitType { get; set; }
 

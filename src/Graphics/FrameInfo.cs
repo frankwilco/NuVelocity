@@ -1,4 +1,4 @@
-﻿namespace NuVelocity
+﻿namespace NuVelocity.Graphics
 {
     [PropertyRoot("CFrameInfo", "Frame Info")]
     public class FrameInfo

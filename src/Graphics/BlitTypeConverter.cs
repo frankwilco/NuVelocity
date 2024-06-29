@@ -1,4 +1,4 @@
-﻿namespace NuVelocity
+﻿namespace NuVelocity.Graphics
 {
     /*
      * The integer representation of the Blit Type property value has changed
