@@ -1,52 +1,14 @@
-﻿using ICSharpCode.SharpZipLib.Zip.Compression;
+﻿using BCnEncoder.Decoder;
+using BCnEncoder.ImageSharp;
+using ICSharpCode.SharpZipLib.Zip.Compression;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
-using System.Buffers.Binary;
 
 namespace NuVelocity.Graphics;
 
-internal static class FrameUtils
+internal static class SlisHelper
 {
-    private const int kDeflateHeaderLength = 2;
-    private const int kOffsetToDeflateHeader = 9;
-    private const int kOffsetFromDeflateHeader = -(kOffsetToDeflateHeader
-        + kDeflateHeaderLength);
-    private const int kFontOffsetToDeflateHeader = 12 + kOffsetToDeflateHeader;
-    private const int kFontOffsetFromDeflateHeader = -(kFontOffsetToDeflateHeader
-        + kDeflateHeaderLength);
-
-    internal static bool IsDeflateHeader(uint header)
-    {
-        // Follow SharpZipLib Inflater's logic for checking the header.
-        return header % 0x1F == 0 &&
-            (header & 0x0f00) == Deflater.DEFLATED << 8;
-    }
-
-    internal static bool CheckDeflateHeader(BinaryReader reader, bool checkFont)
-    {
-        uint header;
-        if (checkFont)
-        {
-            reader.BaseStream.Seek(kFontOffsetToDeflateHeader,
-                SeekOrigin.Current);
-            header = BinaryPrimitives.ReverseEndianness(
-                reader.ReadUInt16());
-            reader.BaseStream.Seek(kFontOffsetFromDeflateHeader,
-                SeekOrigin.Current);
-        }
-        else
-        {
-            reader.BaseStream.Seek(kOffsetToDeflateHeader,
-                SeekOrigin.Current);
-            header = BinaryPrimitives.ReverseEndianness(
-                reader.ReadUInt16());
-            reader.BaseStream.Seek(kOffsetFromDeflateHeader,
-                SeekOrigin.Current);
-        }
-        return IsDeflateHeader(header);
-    }
-
     internal static void ParseComponent(
         int layer, byte[] input, byte[] buffer, int width, int height)
     {
@@ -89,7 +51,7 @@ internal static class FrameUtils
         };
     }
 
-    internal static Image<Rgba32> LoadJpegImage(byte[] imageData, byte[] rawMaskData = null)
+    internal static Image<Rgba32> LoadJpegImage(byte[] imageData, byte[]? rawMaskData = null)
     {
         Image<Rgba32> image = Image.Load<Rgba32>(
             new ReadOnlySpan<byte>(imageData));
@@ -106,7 +68,7 @@ internal static class FrameUtils
         return image;
     }
 
-    internal static Image<Rgba32> LoadLayeredRgbaImage(byte[] rawImageData, int width, int height)
+    internal static Image<Rgba32> LoadPlanarRgbaImage(byte[] rawImageData, int width, int height)
     {
         byte[] imageData = new byte[rawImageData.Length];
         rawImageData.CopyTo(imageData, 0);
@@ -114,14 +76,14 @@ internal static class FrameUtils
         Rgba32[] pixelData = new Rgba32[width * height];
         Array.Fill(pixelData, new Rgba32());
 
-        for (int layer = 0; layer < 4; layer++)
+        for (int plane = 0; plane < 4; plane++)
         {
             byte[] componentData = new byte[width * height];
-            ParseComponent(layer, imageData, componentData, width, height);
+            ParseComponent(plane, imageData, componentData, width, height);
 
             for (int pixelIndex = 0; pixelIndex < pixelData.Length; pixelIndex++)
             {
-                switch (layer)
+                switch (plane)
                 {
                     case 0:
                         pixelData[pixelIndex].R = componentData[pixelIndex];
@@ -145,7 +107,7 @@ internal static class FrameUtils
             new ReadOnlySpan<Rgba32>(pixelData), width, height);
     }
 
-    internal static Image<Rgba32> LoadRgbaImage(byte[] imageData, int width, int height)
+    internal static Image<Rgba32> LoadInterleavedRgbaImage(byte[] imageData, int width, int height)
     {
         Rgba32[] pixelData = new Rgba32[width * height];
 
