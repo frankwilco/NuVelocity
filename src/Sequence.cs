@@ -4,6 +4,7 @@ using ICSharpCode.SharpZipLib.Zip.Compression;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using System.ComponentModel;
 
 namespace NuVelocity
 {
@@ -84,8 +85,8 @@ namespace NuVelocity
         [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
         public float? FramesPerSecond { get; set; }
 
-        [Property("Blit Type", defaultValue: BlitType1.TransparentMask)]
-        public BlitType1? BlitType { get; set; }
+        [Property("Blit Type", defaultValue: NuVelocity.BlitType.TransparentMask)]
+        public BlitType? BlitType { get; set; }
 
         [Property("X Offset", defaultValue: 0)]
         public int? XOffset { get; set; }
@@ -273,7 +274,8 @@ namespace NuVelocity
             out byte[] maskData,
             out Image spritesheet,
             Stream sequenceStream,
-            Stream propertiesStream = null)
+            Stream propertiesStream = null,
+            BlitTypeRevision blitTypeRevision = BlitTypeRevision.Type1)
         {
             Sequence sequence = new();
 
@@ -468,14 +470,8 @@ namespace NuVelocity
                 SequenceFlags.DoDither);
             sequence.IsLossless ??= frameInfoList.Flags.HasFlag(
                 SequenceFlags.Lossless);
-
-            if (sequence.BlitType == null)
-            {
-                sequence.BlitType ??= frameInfoList.BlitTypeEnum;
-            }
-            if (sequence.BlitType != frameInfoList.BlitTypeEnum) {
-                throw new InvalidDataException();
-            }
+            sequence.BlitType ??= BlitTypeConverter.Int32ToType(
+                    frameInfoList.BlitType, blitTypeRevision);
 
             if (fpsMissing)
             {

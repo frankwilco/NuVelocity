@@ -14,21 +14,15 @@
 
         [Property("BlitType")]
         [PropertyExclude(PropertySerializationFlags.HasTextBlitType)]
-        public int BlitType
-        {
-            get
-            {
-                return (int)BlitTypeEnum;
-            }
-            set
-            {
-                BlitTypeEnum = (BlitType1)value;
-            }
-        }
+        public int BlitType { get; set; }
 
         [Property("Blit Type")]
         [PropertyInclude(PropertySerializationFlags.HasTextBlitType)]
-        public BlitType1 BlitTypeEnum { get; set; }
+        public BlitType TextBlitType
+        {
+            get { return (BlitType)BlitType; }
+            set { BlitType = (int)value; }
+        }
 
         [Property("FPS")]
         public float FramesPerSecond { get; set; }
