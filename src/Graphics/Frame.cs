@@ -46,7 +46,7 @@ public class Frame
         }
     }
 
-    [Property("Change Bit Depth", defaultValue: 1)]
+    [Property("Change Bit Depth", defaultValue: true)]
     [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
     public bool? ChangeBitDepth { get; set; }
 
