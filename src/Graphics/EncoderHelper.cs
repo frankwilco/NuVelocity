@@ -2,6 +2,32 @@
 
 internal class EncoderHelper
 {
+    internal static void ApplyRowOffsetAddition(
+        int layer, byte[] input, byte[] buffer, int width, int height)
+    {
+        int rawIndex = layer * width * height;
+        int pixelIndex = 0;
+
+        for (int row = 0; row < height; row++)
+        {
+            for (int column = 0; column < width; column++)
+            {
+                if (row == 0 && column == 0)
+                {
+                    // The base pixel is used as-is.
+                }
+                else
+                {
+                    input[rawIndex] += input[rawIndex - 1];
+                }
+                buffer[pixelIndex] = input[rawIndex];
+
+                pixelIndex++;
+                rawIndex++;
+            }
+        }
+    }
+
     internal static void ReadRgb565Pixel(
         byte[] imageData,
         int dataIndex,

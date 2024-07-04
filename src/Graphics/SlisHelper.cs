@@ -1,7 +1,4 @@
-﻿using BCnEncoder.Decoder;
-using BCnEncoder.ImageSharp;
-using ICSharpCode.SharpZipLib.Zip.Compression;
-using SixLabors.ImageSharp;
+﻿using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
@@ -9,32 +6,6 @@ namespace NuVelocity.Graphics;
 
 internal static class SlisHelper
 {
-    internal static void ParseComponent(
-        int layer, byte[] input, byte[] buffer, int width, int height)
-    {
-        int rawIndex = layer * width * height;
-        int pixelIndex = 0;
-
-        for (int row = 0; row < height; row++)
-        {
-            for (int column = 0; column < width; column++)
-            {
-                if (row == 0 && column == 0)
-                {
-                    // The base pixel is used as-is.
-                }
-                else
-                {
-                    input[rawIndex] += input[rawIndex - 1];
-                }
-                buffer[pixelIndex] = input[rawIndex];
-
-                pixelIndex++;
-                rawIndex++;
-            }
-        }
-    }
-
     internal static PixelAccessorAction<Rgba32> MaskFromByteArray(byte[] maskData)
     {
         return accessor =>
@@ -61,7 +32,7 @@ internal static class SlisHelper
             byte[] maskData = new byte[rawMaskData.Length];
             rawMaskData.CopyTo(maskData, 0);
             byte[] componentData = new byte[image.Width * image.Height];
-            ParseComponent(0, maskData, componentData, image.Width, image.Height);
+            EncoderHelper.ApplyRowOffsetAddition(0, maskData, componentData, image.Width, image.Height);
             image.ProcessPixelRows(MaskFromByteArray(componentData));
         }
 
@@ -79,7 +50,7 @@ internal static class SlisHelper
         for (int plane = 0; plane < 4; plane++)
         {
             byte[] componentData = new byte[width * height];
-            ParseComponent(plane, imageData, componentData, width, height);
+            EncoderHelper.ApplyRowOffsetAddition(plane, imageData, componentData, width, height);
 
             for (int pixelIndex = 0; pixelIndex < pixelData.Length; pixelIndex++)
             {
