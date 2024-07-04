@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 
 namespace NuVelocity.Graphics;
@@ -25,13 +26,23 @@ public abstract class FrameEncoder
 
     public int OffsetY { get; protected set; }
 
-    public byte[]? ImageData1 { get; protected set; }
+    public int BaseWidth { get; protected set; }
 
-    public byte[]? ImageData2 { get; protected set; }
+    public int BaseHeight { get; protected set; }
 
-    public int InitialWidth { get; protected set; }
+    public PixelFormat PixelFormat { get; protected set; }
 
-    public int InitialHeight { get; protected set; }
+    public int FormatVersion { get; protected set; }
+
+    public int Unknown1 { get; protected set; }
+
+    public EncoderMode2Flags Mode2Flags { get; protected set; }
+
+    public byte[][]? LayerData { get; protected set; }
+
+    public int LayerCount { get; protected set; }
+
+    public int[][]? LayerPixelOffsets { get; protected set; }
 
     public FrameEncoder(
         Stream frameStream,
@@ -73,9 +84,11 @@ public abstract class FrameEncoder
         IsPlanar = false;
         OffsetX = 0;
         OffsetY = 0;
-        ImageData1 = null;
-        InitialWidth = 0;
-        InitialHeight = 0;
+        LayerCount = 0;
+        LayerData = null;
+        LayerPixelOffsets = null;
+        BaseWidth = 0;
+        BaseHeight = 0;
 
         switch (Format)
         {
@@ -103,11 +116,74 @@ public abstract class FrameEncoder
 
     protected void ParseMode2Stream()
     {
-        throw new NotImplementedException();
+        using BinaryReader reader = new(_frameStream);
+
+        // FIXME: check value first before casting to enum.
+        FormatVersion = reader.ReadByte();
+        PixelFormat = (PixelFormat)reader.ReadByte();
+        // XXX: Should the offset values be negative by default?
+        OffsetX = -reader.ReadInt16();
+        OffsetY = -reader.ReadInt16();
+        BaseWidth = reader.ReadInt16();
+        BaseHeight = reader.ReadInt16();
+        Unknown1 = reader.ReadInt16();
+        Mode2Flags = (EncoderMode2Flags)reader.ReadInt32();
+
+        IsCompressed =
+            (Mode2Flags & EncoderMode2Flags.FrmUsesRle) > 0;
+        bool has5Layers =
+            Mode2Flags != EncoderMode2Flags.Frm16With3Layers &&
+            Mode2Flags != EncoderMode2Flags.Frm16With3LayersRle;
+        LayerCount = has5Layers ? 5 : 3;
+        int[] layerSizes = new int[LayerCount];
+        for (int i = 0; i < LayerCount; i++)
+        {
+            layerSizes[i] = reader.ReadInt32();
+        }
+
+        LayerData = new byte[LayerCount][];
+        LayerPixelOffsets = new int[LayerCount][];
+        for (int layerIndex = 0; layerIndex < LayerCount; layerIndex++)
+        {
+            int layerSize = layerSizes[layerIndex];
+            if (layerSize == 0)
+            {
+                continue;
+            }
+            int layerSizeInLayer = reader.ReadInt32();
+            if (layerSize == layerSizeInLayer)
+            {
+                layerSize -= 4;
+            }
+            else
+            {
+                reader.BaseStream.Seek(-4, SeekOrigin.Current);
+            }
+            LayerData[layerIndex] = reader.ReadBytes(layerSize);
+
+            int pixelOffsetCount = BaseHeight;
+            int pixelOffsetSize = pixelOffsetCount * 4;
+            int pixelOffsetBytesRead = 0;
+            LayerPixelOffsets[layerIndex] = new int[pixelOffsetCount];
+            for (int i = 0; i < pixelOffsetCount; i++)
+            {
+                LayerPixelOffsets[layerIndex][i] = reader.ReadInt32();
+                pixelOffsetBytesRead += 4;
+            }
+            if (pixelOffsetBytesRead != pixelOffsetSize)
+            {
+                throw new InvalidDataException();
+            }
+        }
     }
 
     protected void ParseMode3Stream()
     {
+        PixelFormat = PixelFormat.Rgb888;
+        FormatVersion = -1;
+        LayerCount = 2;
+        LayerData = new byte[LayerCount][];
+
         using BinaryReader reader = new(_frameStream);
 
         OffsetX = reader.ReadInt32();
@@ -130,8 +206,8 @@ public abstract class FrameEncoder
 
                 _inflater.Reset();
                 _inflater.SetInput(reader.ReadBytes(deflatedSize));
-                ImageData1 = new byte[inflatedSize];
-                if (_inflater.Inflate(ImageData1) == 0)
+                LayerData[0] = new byte[inflatedSize];
+                if (_inflater.Inflate(LayerData[0]) == 0)
                 {
                     throw new InvalidDataException();
                 }
@@ -139,16 +215,16 @@ public abstract class FrameEncoder
             else
             {
                 rawSize = reader.ReadInt32();
-                ImageData1 = reader.ReadBytes(rawSize);
+                LayerData[0] = reader.ReadBytes(rawSize);
             }
 
-            InitialWidth = reader.ReadInt32();
-            InitialHeight = reader.ReadInt32();
+            BaseWidth = reader.ReadInt32();
+            BaseHeight = reader.ReadInt32();
             return;
         }
 
         int _rawSize = reader.ReadInt32();
-        ImageData1 = reader.ReadBytes(_rawSize);
+        LayerData[0] = reader.ReadBytes(_rawSize);
         int distanceToEof = (int)(_frameStream.Length - _frameStream.Position);
         if (distanceToEof > 0)
         {
@@ -157,8 +233,8 @@ public abstract class FrameEncoder
 
             _inflater.Reset();
             _inflater.SetInput(reader.ReadBytes(distanceToEof - 5));
-            ImageData2 = new byte[maskInflatedSize];
-            if (_inflater.Inflate(ImageData2) == 0)
+            LayerData[1] = new byte[maskInflatedSize];
+            if (_inflater.Inflate(LayerData[1]) == 0)
             {
                 throw new InvalidDataException();
             }
