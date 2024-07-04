@@ -1,6 +1,6 @@
 ﻿namespace NuVelocity.Graphics;
 
-public enum FrameFormat
+public enum EncoderFormat
 {
     Mode1,
     Mode2,

@@ -19,7 +19,7 @@ public abstract class SequenceEncoder
 
     public SequenceFrameInfoList? SequenceFrameInfoList { get; protected set; }
 
-    public FrameFormat Format { get; protected set; }
+    public EncoderFormat Format { get; protected set; }
 
     public BlitTypeRevision BlitTypeRevision { get; protected set; }
 
@@ -53,7 +53,7 @@ public abstract class SequenceEncoder
     public SequenceEncoder(
         Stream sequenceStream,
         Stream? propertiesStream,
-        FrameFormat format,
+        EncoderFormat format,
         BlitTypeRevision blitTypeRevision = BlitTypeRevision.Type1)
     {
         _sequenceStream = sequenceStream ??
@@ -100,15 +100,15 @@ public abstract class SequenceEncoder
 
         switch (Format)
         {
-            case FrameFormat.Mode1:
+            case EncoderFormat.Mode1:
                 ParseMode1Stream();
                 LoadMode1Sequence();
                 break;
-            case FrameFormat.Mode2:
+            case EncoderFormat.Mode2:
                 ParseMode2Stream();
                 LoadMode2Sequence();
                 break;
-            case FrameFormat.Mode3:
+            case EncoderFormat.Mode3:
                 ParseMode3Stream();
                 LoadMode3Sequence();
                 break;

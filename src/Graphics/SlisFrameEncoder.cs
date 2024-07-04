@@ -9,7 +9,7 @@ public class SlisFrameEncoder : FrameEncoder
     private Image? _image;
 
     public SlisFrameEncoder(
-        FrameFormat format,
+        EncoderFormat format,
         Stream frameStream,
         Stream? propertiesStream)
         : base(frameStream, propertiesStream, format)

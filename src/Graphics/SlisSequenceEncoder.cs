@@ -11,7 +11,7 @@ public class SlisSequenceEncoder : SequenceEncoder
     public Image? Spritesheet { get; protected set; }
 
     public SlisSequenceEncoder(
-        FrameFormat format,
+        EncoderFormat format,
         Stream frameStream,
         Stream? propertiesStream)
         : base(frameStream, propertiesStream, format)

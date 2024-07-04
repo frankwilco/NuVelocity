@@ -16,7 +16,7 @@ public abstract class FrameEncoder
 
     public Frame Frame { get; protected set; }
 
-    public FrameFormat Format { get; protected set; }
+    public EncoderFormat Format { get; protected set; }
 
     public bool IsCompressed { get; protected set; }
 
@@ -47,7 +47,7 @@ public abstract class FrameEncoder
     public FrameEncoder(
         Stream frameStream,
         Stream? propertiesStream,
-        FrameFormat format)
+        EncoderFormat format)
     {
         _frameStream = frameStream ??
                     throw new ArgumentNullException(nameof(frameStream));
@@ -92,15 +92,15 @@ public abstract class FrameEncoder
 
         switch (Format)
         {
-            case FrameFormat.Mode1:
+            case EncoderFormat.Mode1:
                 ParseMode1Stream();
                 LoadMode1Frame();
                 break;
-            case FrameFormat.Mode2:
+            case EncoderFormat.Mode2:
                 ParseMode2Stream();
                 LoadMode2Frame();
                 break;
-            case FrameFormat.Mode3:
+            case EncoderFormat.Mode3:
                 ParseMode3Stream();
                 LoadMode3Frame();
                 break;
