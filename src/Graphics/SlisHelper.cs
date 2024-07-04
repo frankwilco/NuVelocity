@@ -6,6 +6,12 @@ namespace NuVelocity.Graphics;
 
 internal static class SlisHelper
 {
+    private const byte kSeekCommand = 0b10000000;
+    private const byte kSeekMask = 0b01111111;
+    private const byte kAppendCommand = 0b01000000;
+    private const byte kAppendMask = 0b00111111;
+    private const byte kRepeatMask = 0b00111111;
+
     internal static PixelAccessorAction<Rgba32> MaskFromByteArray(byte[] maskData)
     {
         return accessor =>
@@ -97,6 +103,84 @@ internal static class SlisHelper
 
         return Image.LoadPixelData(
             new ReadOnlySpan<Rgba32>(pixelData), width, height);
+    }
+
+    internal static void DecodeRleLayer(
+        Rgba32[] pixelData,
+        byte[] layerData,
+        byte[]? alphaData,
+        bool seekIsFill)
+    {
+        int pixelIndex = 0;
+        int appendLength = 0;
+        int alphaIndex = 0;
+
+        for (int i = 0; i < layerData.Length; i++)
+        {
+            byte current = layerData[i];
+            if (appendLength > 0)
+            {
+                EncoderHelper.ReadRgb565PixelAsRgb888(
+                    layerData,
+                    i,
+                    out byte r,
+                    out byte g,
+                    out byte b);
+                byte a = 255;
+                if (alphaData != null)
+                {
+                    a = alphaData[alphaIndex];
+                    alphaIndex++;
+                }
+                pixelData[pixelIndex] = new(r, g, b, a);
+                pixelIndex++;
+                i++;
+                appendLength--;
+            }
+            else if ((current & kSeekCommand) == kSeekCommand)
+            {
+                int seekLength = current & kSeekMask;
+                while (seekLength > 0)
+                {
+                    if (seekIsFill)
+                    { 
+                        pixelData[pixelIndex] = Color.Transparent;
+                    }
+                    pixelIndex++;
+                    seekLength--;
+                }
+            }
+            else if ((current & kAppendCommand) == kAppendCommand)
+            {
+                appendLength = current & kAppendMask;
+            }
+            else
+            {
+                int repeatCount = current & kRepeatMask;
+                while (repeatCount > 0)
+                {
+                    EncoderHelper.ReadRgb565PixelAsRgb888(
+                        layerData,
+                        i + 1,
+                        out byte r,
+                        out byte g,
+                        out byte b);
+                    byte a = 255;
+                    if (alphaData != null)
+                    {
+                        a = alphaData[alphaIndex];
+                    }
+                    pixelData[pixelIndex] = new(r, g, b, a);
+                    pixelIndex++;
+                    repeatCount--;
+                }
+                if (alphaData != null)
+                {
+                    alphaIndex++;
+                }
+                i += 2;
+            }
+        }
     }
 
     internal static void OffsetImage(Image image, Point offset)
