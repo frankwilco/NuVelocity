@@ -195,7 +195,8 @@ public class Sequence
 
     [Property("JPEG Quality", defaultValue: 80)]
     [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
-                     PropertySerializationFlags.HasJpegQuality2)]
+                     PropertySerializationFlags.HasJpegQuality2 |
+                     PropertySerializationFlags.HasSimpleFormat)]
     internal int? JpegQuality1
     {
         get => JpegQuality;
