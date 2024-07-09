@@ -1,5 +1,7 @@
 ﻿using ICSharpCode.SharpZipLib.Zip.Compression;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
+using System.Text;
 
 namespace NuVelocity.Graphics;
 
@@ -27,6 +29,8 @@ public abstract class SequenceEncoder
 
     public bool IsFont { get; protected set; }
 
+    public FontBitmap? Font { get; protected set; }
+
     public bool IsHD { get; protected set; }
 
     public bool IsEmpty { get; protected set; }
@@ -46,9 +50,33 @@ public abstract class SequenceEncoder
 
     public byte[]? ImageData2 { get; protected set; }
 
-    public int InitialWidth { get; protected set; }
+    //
 
-    public int InitialHeight { get; protected set; }
+    public int BaseWidth { get; protected set; }
+
+    public int BaseHeight { get; protected set; }
+
+    public byte Scan1 { get; protected set; }
+
+    public byte Scan2 { get; protected set; }
+
+    public byte Flags { get; protected set; }
+
+    public int Scan3 { get; protected set; }
+
+    public SequenceEncoderMode2Game Unknown1 { get; protected set; }
+
+    public int DynamicPropertiesLength { get; protected set; }
+
+    public int Mode2HotSpotX { get; protected set; }
+
+    public int Mode2HotSpotY { get; protected set; }
+
+    public int Mode2CenterX { get; protected set; }
+    
+    public int Mode2CenterY { get; protected set; }
+
+    public FrameEncoder[]? FrameData { get; protected set; }
 
     public SequenceEncoder(
         Stream sequenceStream,
@@ -95,8 +123,8 @@ public abstract class SequenceEncoder
         IsEmpty = false;
         ImageData1 = null;
         ImageData2 = null;
-        InitialWidth = 0;
-        InitialHeight = 0;
+        BaseWidth = 0;
+        BaseHeight = 0;
 
         switch (Format)
         {
@@ -122,15 +150,226 @@ public abstract class SequenceEncoder
         throw new NotImplementedException();
     }
 
+    const byte kFlagsHasDynamicProperties = 0xD8;
+    const byte kFlagsBase = 0xD0;
+    const byte kScan3Magic = 0x41;
+    const byte kFrameSeparator = 0x01;
+    const byte kFrameSeparatorEmpty = 0x00;
+
     protected void ParseMode2Stream()
     {
-        throw new NotImplementedException();
+        using BinaryReader reader = new(_sequenceStream);
+
+        Scan1 = reader.ReadByte();
+        Scan2 = reader.ReadByte();
+        Flags = reader.ReadByte();
+        Scan3 = reader.ReadByte();
+        if (Scan3 != kScan3Magic)
+        {
+            throw new NotImplementedException();
+        }
+        Unknown1 = (SequenceEncoderMode2Game)reader.ReadInt32();
+
+        if (Flags == kFlagsHasDynamicProperties)
+        {
+            DynamicPropertiesLength = reader.ReadInt32();
+        }
+        else if (Flags != kFlagsBase)
+        {
+            throw new NotImplementedException();
+        }
+
+        if (DynamicPropertiesLength > 0)
+        {
+            for (int i = 0; i < DynamicPropertiesLength; i++)
+            {
+                int propertyNameLength = reader.ReadInt32();
+                byte[] propertyNameBytes = reader.ReadBytes(propertyNameLength);
+                string propertyName = Encoding.ASCII.GetString(propertyNameBytes);
+
+                // TODO: this should probably rely on something from the
+                // property serializer. Hardcode some known values for now.
+                if (propertyName == "Menu Position")
+                {
+                    Sequence.MenuPosition = new()
+                    {
+                        X = reader.ReadInt32(),
+                        Y = reader.ReadInt32(),
+                    };
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+            }
+        }
+
+        int frameCount = reader.ReadInt32();
+        FrameData = new FrameEncoder[frameCount];
+        Sequence.FramesPerSecond = reader.ReadSingle();
+
+        if (Unknown1 == SequenceEncoderMode2Game.Zax ||
+            Unknown1 == SequenceEncoderMode2Game.ZaxBitmapFont ||
+            Unknown1 == SequenceEncoderMode2Game.StarTrekAwayTeam ||
+            Unknown1 == SequenceEncoderMode2Game.StarTrekAwayTeamBitmapFont)
+        {
+            Sequence.CenterHotSpot = reader.ReadBoolean();
+        }
+
+        int blitTypeLength = reader.ReadInt32();
+        byte[] blitTypeBytes = reader.ReadBytes(blitTypeLength);
+        string blitTypeText = Encoding.ASCII.GetString(blitTypeBytes);
+        // XXX: Borrowed from the property serializer.
+        Type propType = typeof(BlitType);
+        foreach (var enumMember in propType.GetMembers())
+        {
+            if (!enumMember.IsDefined(typeof(PropertyAttribute)))
+            {
+                continue;
+            }
+            PropertyAttribute? propAttr = enumMember.GetCustomAttribute<PropertyAttribute>(true);
+            if (propAttr?.Name == blitTypeText)
+            {
+                Sequence.BlitType = Enum.Parse<BlitType>(enumMember.Name);
+                break;
+            }
+        }
+
+        switch (Unknown1)
+        {
+            case SequenceEncoderMode2Game.Zax:
+            case SequenceEncoderMode2Game.StarTrekAwayTeam:
+                ParseMode2PropertyListForZax(reader);
+                break;
+            case SequenceEncoderMode2Game.ZaxBitmapFont:
+            case SequenceEncoderMode2Game.StarTrekAwayTeamBitmapFont:
+                ParseMode2PropertyListForZax(reader);
+                ParseFontBitmapPropertyList(reader);
+                break;
+            case SequenceEncoderMode2Game.RicochetLostWorlds:
+                ParseMode2PropertyListForRicochetLostWorlds(reader);
+                break;
+            case SequenceEncoderMode2Game.SwarmOrRicochetXtreme:
+            case SequenceEncoderMode2Game.RicochetXtremeLegacy:
+                ParseMode2PropertyListForSwarm(reader);
+                break;
+            case SequenceEncoderMode2Game.SwarmOrRicochetXtremeBitmapFont:
+            case SequenceEncoderMode2Game.RicochetXtremeLegacyBitmapFont:
+                ParseMode2PropertyListForSwarm(reader);
+                ParseFontBitmapPropertyList(reader);
+                break;
+            case SequenceEncoderMode2Game.Lionheart:
+                ParseMode2PropertyListForLionheart(reader);
+                break;
+            case SequenceEncoderMode2Game.Wik:
+            default:
+                throw new NotImplementedException();
+        }
+
+        Mode2HotSpotX = reader.ReadInt32();
+        Mode2HotSpotY = reader.ReadInt32();
+        Mode2CenterX = reader.ReadInt32();
+        Mode2CenterY = reader.ReadInt32();
+
+        int frameDataIndex = 0;
+        while (_sequenceStream.Position < _sequenceStream.Length)
+        {
+            byte separator = reader.ReadByte();
+            if (separator == kFrameSeparatorEmpty)
+            {
+                IsEmpty = true;
+                break;
+            }
+            if (separator != kFrameSeparator)
+            {
+                throw new InvalidDataException();
+            }
+            FrameData[frameDataIndex] = BuildFrameEncoder(_sequenceStream);
+            frameDataIndex++;
+        }
+    }
+
+    protected abstract FrameEncoder BuildFrameEncoder(Stream frameStream);
+
+    private void ParseMode2PropertyListForZax(BinaryReader reader)
+    {
+        Sequence.Flags |= PropertySerializationFlags.HasSimpleFormat;
+        Sequence.BlendedWithBlack = reader.ReadBoolean();
+        Sequence.CropAlphaChannel = reader.ReadBoolean();
+        Sequence.Use8BitAlpha = reader.ReadBoolean();
+        Sequence.Dither = reader.ReadBoolean();
+        Sequence.XOffset = reader.ReadInt32();
+        Sequence.YOffset = reader.ReadInt32();
+    }
+
+    private void ParseMode2PropertyListForRicochetLostWorlds(BinaryReader reader)
+    {
+        Sequence.Flags |= PropertySerializationFlags.HasJpegQuality2;
+        Sequence.XOffset = reader.ReadInt32();
+        Sequence.YOffset = reader.ReadInt32();
+        Sequence.UseEvery = reader.ReadInt32();
+        Sequence.AlwaysIncludeLastFrame = reader.ReadBoolean();
+        Sequence.CenterHotSpot = reader.ReadBoolean();
+        Sequence.BlendedWithBlack = reader.ReadBoolean();
+        Sequence.CropAlphaChannel = reader.ReadBoolean();
+        Sequence.Use8BitAlpha = reader.ReadBoolean();
+        Sequence.IsRle = reader.ReadBoolean();
+        Sequence.DoDither = reader.ReadBoolean();
+        Sequence.LossLess2 = reader.ReadBoolean();
+        Sequence.JpegQuality2 = reader.ReadInt32();
+    }
+
+    private void ParseMode2PropertyListForSwarm(BinaryReader reader)
+    {
+        Sequence.Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+        Sequence.XOffset = reader.ReadInt32();
+        Sequence.YOffset = reader.ReadInt32();
+        Sequence.CenterHotSpot = reader.ReadBoolean();
+        Sequence.BlendedWithBlack = reader.ReadBoolean();
+        Sequence.CropAlphaChannel = reader.ReadBoolean();
+        Sequence.Use8BitAlpha = reader.ReadBoolean();
+        Sequence.DoDither = reader.ReadBoolean();
+        Sequence.IsLossless = reader.ReadBoolean();
+        int jpegQuality = reader.ReadInt32();
+        if (jpegQuality > 0 && jpegQuality <= 100)
+        {
+            Sequence.JpegQuality = jpegQuality;
+        }
+        else
+        {
+#if NV_LOG
+            Console.WriteLine($"Ignoring JPEG quality value: {jpegQuality}");
+#endif
+        }
+    }
+
+    private void ParseMode2PropertyListForLionheart(BinaryReader reader)
+    {
+        Sequence.Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+        Sequence.XOffset = reader.ReadInt32();
+        Sequence.YOffset = reader.ReadInt32();
+        Sequence.CenterHotSpot = reader.ReadBoolean();
+        Sequence.BlendedWithBlack = reader.ReadBoolean();
+        Sequence.CropAlphaChannel = reader.ReadBoolean();
+        Sequence.Use8BitAlpha = reader.ReadBoolean();
+        Sequence.DoDither = reader.ReadBoolean();
+    }
+
+    private void ParseFontBitmapPropertyList(BinaryReader reader)
+    {
+        Font = new()
+        {
+            BlitType = Sequence.BlitType,
+            XHeight = reader.ReadInt32(),
+            FirstAscii = reader.ReadInt32(),
+            LastAscii = reader.ReadInt32(),
+            IsFixedWidth = reader.ReadBoolean()
+        };
     }
 
     protected void ParseMode3Stream()
     {
         using BinaryReader reader = new(_sequenceStream);
-
         // Check if the embedded lists are uncompressed.
         bool hasHeader = HeaderUtils.CheckDeflateHeader(reader, false);
         // Check a different location for the deflate header
@@ -166,8 +405,8 @@ public abstract class SequenceEncoder
                 byte unknown1 = reader.ReadByte(); // unknown value
                 int imageSize = reader.ReadInt32();
                 ImageData1 = reader.ReadBytes(imageSize);
-                InitialWidth = reader.ReadInt32();
-                InitialHeight = reader.ReadInt32();
+                BaseWidth = reader.ReadInt32();
+                BaseHeight = reader.ReadInt32();
             }
         }
         else
@@ -216,8 +455,8 @@ public abstract class SequenceEncoder
                     {
                         throw new InvalidDataException();
                     }
-                    InitialWidth = reader.ReadInt32();
-                    InitialHeight = reader.ReadInt32();
+                    BaseWidth = reader.ReadInt32();
+                    BaseHeight = reader.ReadInt32();
                 }
                 else
                 {

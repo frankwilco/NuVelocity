@@ -11,8 +11,9 @@ public class SlisFrameEncoder : FrameEncoder
     public SlisFrameEncoder(
         EncoderFormat format,
         Stream frameStream,
-        Stream? propertiesStream)
-        : base(frameStream, propertiesStream, format)
+        Stream? propertiesStream,
+        bool isEmbedded = false)
+        : base(frameStream, propertiesStream, format, isEmbedded)
     {
         ProcessOffsets();
         SlisFrame.Texture = _image;

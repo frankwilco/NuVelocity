@@ -28,6 +28,11 @@ public class SlisSequenceEncoder : SequenceEncoder
         Sequence = new SlisSequence();
     }
 
+    protected override FrameEncoder BuildFrameEncoder(Stream frameStream)
+    {
+        return new SlisFrameEncoder(Format, frameStream, null, true);
+    }
+
     protected override void LoadMode1Sequence()
     {
         throw new NotImplementedException();
@@ -35,7 +40,25 @@ public class SlisSequenceEncoder : SequenceEncoder
 
     protected override void LoadMode2Sequence()
     {
-        throw new NotImplementedException();
+        if (FrameData == null)
+        {
+            return;
+        }
+
+        Image[] images = new Image[FrameData.Length];
+        for (int i = 0; i < FrameData.Length; i++)
+        {
+            SlisFrameEncoder? frameEncoder = (SlisFrameEncoder)FrameData[i];
+            if (frameEncoder == null ||
+                frameEncoder.SlisFrame.Texture == null)
+            {
+                images[i] = new Image<Rgba32>(1, 1);
+                continue;
+            }
+            images[i] = frameEncoder.SlisFrame.Texture;
+        }
+
+        SlisSequence.Textures = images;
     }
 
     protected override void LoadMode3Sequence()
@@ -58,19 +81,19 @@ public class SlisSequenceEncoder : SequenceEncoder
             if (!IsDds)
             {
                 Spritesheet = SlisHelper.LoadInterleavedRgbaImage(
-                    ImageData1, InitialWidth, InitialHeight);
+                    ImageData1, BaseWidth, BaseHeight);
             }
         }
         else if (IsCompressed)
         {
             Spritesheet = SlisHelper.LoadPlanarRgbaImage(
-                ImageData1, InitialWidth, InitialHeight);
+                ImageData1, BaseWidth, BaseHeight);
         }
         else
         {
             Spritesheet = SlisHelper.LoadJpegImage(ImageData1, ImageData2);
-            InitialWidth = Spritesheet.Width;
-            InitialHeight = Spritesheet.Height;
+            BaseWidth = Spritesheet.Width;
+            BaseHeight = Spritesheet.Height;
         }
 
         // Return early if there's no need to process the image further.

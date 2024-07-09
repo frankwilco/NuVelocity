@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
+using System.Text;
 using ICSharpCode.SharpZipLib.Zip.Compression;
 
 namespace NuVelocity.Graphics;
@@ -22,6 +22,7 @@ public abstract class FrameEncoder
 
     public bool IsPlanar { get; protected set; }
 
+    public bool IsEmbedded { get; protected set; }
 
     public int HotSpotX { get; protected set; }
 
@@ -48,7 +49,8 @@ public abstract class FrameEncoder
     public FrameEncoder(
         Stream frameStream,
         Stream? propertiesStream,
-        EncoderFormat format)
+        EncoderFormat format,
+        bool isEmbedded = false)
     {
         _frameStream = frameStream ??
                     throw new ArgumentNullException(nameof(frameStream));
@@ -63,6 +65,7 @@ public abstract class FrameEncoder
         }
         _inflater = new();
         Format = format;
+        IsEmbedded = isEmbedded;
 
         InitializeFrame();
         Initialize();
@@ -115,9 +118,24 @@ public abstract class FrameEncoder
         throw new NotImplementedException();
     }
 
+    private static readonly byte[] kMode1Header = new byte[] { 0x46, 0x52, 0x41, 0x4D, 0x45 };
+
     protected void ParseMode2Stream()
     {
-        using BinaryReader reader = new(_frameStream);
+        using BinaryReader reader = new(_frameStream, Encoding.UTF8, true);
+
+        if (!IsEmbedded)
+        {
+            // FIXME: There are .frm16 files that are in the Mode 1 format
+            // for some reason. Skip those for now.
+            byte[] header = reader.ReadBytes(5);
+            if (header.SequenceEqual(kMode1Header))
+            {
+                Format = EncoderFormat.Mode1;
+                return;
+            }
+            _frameStream.Seek(0, SeekOrigin.Begin);
+        }
 
         // FIXME: check value first before casting to enum.
         FormatVersion = reader.ReadByte();
