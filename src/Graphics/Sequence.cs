@@ -186,6 +186,7 @@ public class Sequence
     }
 
     [Property("Quality2", defaultValue: 65)]
+    [PropertyExclude]
     internal int? Quality2
     {
         get => JpegQuality;
