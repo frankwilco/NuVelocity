@@ -7,8 +7,6 @@ public class Sequence
     private int? _ySort;
     private string? _pokeAudio;
     private bool? _editorOnly;
-    private bool? _cropColor0;
-    private int? _jpegQuality;
     private bool? _isDds;
     private bool? _needsBuffer;
 
@@ -98,16 +96,16 @@ public class Sequence
 
     [Property("Crop Color 0", defaultValue: true)]
     [PropertyInclude(PropertySerializationFlags.HasFixedCropColor0Name)]
-    public bool? CropColor0
+    internal bool? CropColor0
     {
-        get { return _cropColor0; }
+        get { return CropAlphaChannel; }
         set
         {
-            if (_cropColor0 == null)
+            if (CropAlphaChannel == null)
             {
                 Flags |= PropertySerializationFlags.HasFixedCropColor0Name;
             }
-            _cropColor0 = value;
+            CropAlphaChannel = value;
         }
     }
 
@@ -115,9 +113,11 @@ public class Sequence
     [PropertyExclude(PropertySerializationFlags.HasFixedCropColor0Name)]
     internal bool? CropClor0
     {
-        get { return _cropColor0; }
-        set { _cropColor0 = value; }
+        get => CropAlphaChannel;
+        set => CropAlphaChannel = value;
     }
+
+    public bool? CropAlphaChannel { get; set; }
 
     [Property("Use 8 Bit Alpha", defaultValue: false)]
     public bool? Use8BitAlpha { get; set; }
@@ -129,17 +129,17 @@ public class Sequence
 
     [Property("Do Dither", defaultValue: true)]
     [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
-    public bool? DitherImage { get; set; }
+    public bool? DoDither { get; set; }
 
     // TN: Present in Star Trek Away Team sequence files.
     [Property("Dither", defaultValue: true)]
     [PropertyInclude(PropertySerializationFlags.HasSimpleFormat)]
-    protected bool? DitherImageOld
+    internal bool? Dither
     {
-        get { return DitherImage; }
+        get { return DoDither; }
         set
         {
-            DitherImage = value;
+            DoDither = value;
             Flags |= PropertySerializationFlags.HasSimpleFormat;
         }
     }
@@ -147,7 +147,7 @@ public class Sequence
     [Property("Loss Less", defaultValue: false)]
     [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
     [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
-    protected bool? IsLosslessOld
+    internal bool? LossLess1
     {
         get { return IsLossless; }
         set
@@ -160,57 +160,59 @@ public class Sequence
     [Property("Loss Less 2", defaultValue: false)]
     [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
                      PropertySerializationFlags.HasSimpleFormat)]
+    internal bool? LossLess2
+    {
+        get => IsLossless;
+        set => IsLossless = value;
+    }
+
     public bool? IsLossless { get; set; }
 
     [Property("Quality", defaultValue: 65)]
     [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
-    protected int? Quality1
+    internal int? Quality1
     {
-        get { return _jpegQuality; }
+        get { return JpegQuality; }
         set
         {
-            _jpegQuality = value;
+            JpegQuality = value;
             Flags |= PropertySerializationFlags.HasLegacyImageQuality;
         }
     }
 
     [Property("Quality2", defaultValue: 65)]
-    protected int? Quality2
+    internal int? Quality2
     {
-        get { return _jpegQuality; }
-        set { _jpegQuality = value; }
+        get => JpegQuality;
+        set => JpegQuality = value;
     }
 
     [Property("JPEG Quality", defaultValue: 80)]
     [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
                      PropertySerializationFlags.HasJpegQuality2)]
-    protected int? JpegQuality1
+    internal int? JpegQuality1
     {
-        get => _jpegQuality;
-        set => _jpegQuality = value;
+        get => JpegQuality;
+        set => JpegQuality = value;
     }
 
     [Property("JPEG Quality 2", defaultValue: 80)]
     [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
     [PropertyInclude(PropertySerializationFlags.HasJpegQuality2)]
-    protected int? JpegQuality2
+    internal int? JpegQuality2
     {
-        get { return _jpegQuality; }
+        get { return JpegQuality; }
         set
         {
-            if (_jpegQuality == null)
+            if (JpegQuality == null)
             {
                 Flags |= PropertySerializationFlags.HasJpegQuality2;
             }
-            _jpegQuality = value;
+            JpegQuality = value;
         }
     }
 
-    public int? JpegQuality
-    {
-        get => _jpegQuality;
-        set => _jpegQuality = value;
-    }
+    public int? JpegQuality { get; set; }
 
     [Property("DDS")]
     [PropertyInclude(PropertySerializationFlags.HasDdsSupport)]

@@ -272,7 +272,7 @@ public abstract class SequenceEncoder
                 SequenceFlags.Use8BitAlpha);
         Sequence.IsRle ??= SequenceFrameInfoList.Flags.HasFlag(
             SequenceFlags.RunLengthEncode);
-        Sequence.DitherImage ??= SequenceFrameInfoList.Flags.HasFlag(
+        Sequence.DoDither ??= SequenceFrameInfoList.Flags.HasFlag(
             SequenceFlags.DoDither);
         Sequence.IsLossless ??= SequenceFrameInfoList.Flags.HasFlag(
             SequenceFlags.Lossless);

@@ -7,7 +7,6 @@ public class Frame
     private int? _finalBitDepth;
     private bool? _removeBlackBlending;
     private bool? _removeDeadAlpha;
-    private int? _jpegQuality;
 
     public PropertySerializationFlags Flags { get; set; }
 
@@ -27,21 +26,26 @@ public class Frame
     public bool? IsRleAllCopy { get; set; }
 
     [Property("Crop Color 0", defaultValue: true)]
-    public bool? CropColor0 { get; set; }
+    internal bool? CropColor0 {
+        get => CropAlphaChannel;
+        set => CropAlphaChannel = value;
+    }
+
+    public bool? CropAlphaChannel { get; set; }
 
     [Property("Do Dither", defaultValue: true)]
     [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
-    public bool? DitherImage { get; set; }
+    public bool? DoDither { get; set; }
 
     // TN: Present in some Ricochet Xtreme frame files.
     [Property("Dither", defaultValue: true)]
     [PropertyInclude(PropertySerializationFlags.HasSimpleFormat)]
-    protected bool? DitherImageOld
+    internal bool? Dither
     {
-        get { return DitherImage; }
+        get { return DoDither; }
         set
         {
-            DitherImage = value;
+            DoDither = value;
             Flags |= PropertySerializationFlags.HasSimpleFormat;
         }
     }
@@ -52,7 +56,7 @@ public class Frame
 
     [Property("Loss Less", defaultValue: false)]
     [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
-    protected bool? IsLosslessOld
+    internal bool? LossLess1
     {
         get { return IsLossless; }
         set
@@ -64,16 +68,21 @@ public class Frame
 
     [Property("Loss Less 2", defaultValue: false)]
     [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
+    internal bool? LossLess2 {
+        get => IsLossless;
+        set => IsLossless = value;
+    }
+
     public bool? IsLossless { get; set; }
 
     [Property("Quality", defaultValue: 80)]
     [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
-    protected int? QualityOld
+    internal int? Quality1
     {
-        get { return _jpegQuality; }
+        get { return JpegQuality; }
         set
         {
-            _jpegQuality = value;
+            JpegQuality = value;
             Flags |= PropertySerializationFlags.HasLegacyImageQuality;
         }
     }
@@ -82,27 +91,29 @@ public class Frame
     [Property("JPEG Quality", defaultValue: 80)]
     [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
                      PropertySerializationFlags.HasJpegQuality2)]
-    protected int? JpegQualityOld
+    internal int? JpegQuality1
     {
-        get => _jpegQuality;
-        set => _jpegQuality = value;
+        get => JpegQuality;
+        set => JpegQuality = value;
     }
 
     [Property("JPEG Quality 2", defaultValue: 80)]
     [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
     [PropertyInclude(PropertySerializationFlags.HasJpegQuality2)]
-    public int? JpegQuality
+    internal int? JpegQuality2
     {
-        get { return _jpegQuality; }
+        get { return JpegQuality; }
         set
         {
-            if (_jpegQuality == null)
+            if (JpegQuality == null)
             {
                 Flags |= PropertySerializationFlags.HasJpegQuality2;
             }
-            _jpegQuality = value;
+            JpegQuality = value;
         }
     }
+
+    public int? JpegQuality { get; set; }
 
     [Property("Center Hot Spot", defaultValue: false)]
     [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
