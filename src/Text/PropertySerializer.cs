@@ -187,7 +187,9 @@ public static class PropertySerializer
 
             var exclusionAttr = prop
                 .GetCustomAttribute<PropertyExcludeAttribute>();
-            if (exclusionAttr != null && ((source & exclusionAttr.Flags) > 0))
+            bool hasExclusionMatch = ((source & exclusionAttr?.Flags) > 0) ||
+                exclusionAttr?.Flags == PropertySerializationFlags.None;
+            if (exclusionAttr != null && hasExclusionMatch)
             {
 #if NV_LOG
                 Console.WriteLine(
@@ -199,7 +201,8 @@ public static class PropertySerializer
             }
             var inclusionAttr = prop
                 .GetCustomAttribute<PropertyIncludeAttribute>();
-            if (inclusionAttr != null && !((source & inclusionAttr.Flags) > 0))
+            bool hasInclusionMatch = (source & inclusionAttr?.Flags) > 0;
+            if (inclusionAttr != null && !hasInclusionMatch)
             {
 #if NV_LOG
                 Console.WriteLine(
