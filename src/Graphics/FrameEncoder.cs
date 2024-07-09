@@ -22,9 +22,10 @@ public abstract class FrameEncoder
 
     public bool IsPlanar { get; protected set; }
 
-    public int OffsetX { get; protected set; }
 
-    public int OffsetY { get; protected set; }
+    public int HotSpotX { get; protected set; }
+
+    public int HotSpotY { get; protected set; }
 
     public int BaseWidth { get; protected set; }
 
@@ -82,8 +83,8 @@ public abstract class FrameEncoder
 
         IsCompressed = false;
         IsPlanar = false;
-        OffsetX = 0;
-        OffsetY = 0;
+        HotSpotX = 0;
+        HotSpotY = 0;
         LayerCount = 0;
         LayerData = null;
         LayerPixelOffsets = null;
@@ -121,9 +122,9 @@ public abstract class FrameEncoder
         // FIXME: check value first before casting to enum.
         FormatVersion = reader.ReadByte();
         PixelFormat = (PixelFormat)reader.ReadByte();
-        // XXX: Should the offset values be negative by default?
-        OffsetX = -reader.ReadInt16();
-        OffsetY = -reader.ReadInt16();
+        // XXX: Should the hot spot values be negative by default?
+        HotSpotX = -reader.ReadInt16();
+        HotSpotY = -reader.ReadInt16();
         BaseWidth = reader.ReadInt16();
         BaseHeight = reader.ReadInt16();
         Unknown1 = reader.ReadInt16();
@@ -186,8 +187,8 @@ public abstract class FrameEncoder
 
         using BinaryReader reader = new(_frameStream);
 
-        OffsetX = reader.ReadInt32();
-        OffsetY = reader.ReadInt32();
+        HotSpotX = reader.ReadInt32();
+        HotSpotY = reader.ReadInt32();
         IsCompressed = reader.ReadBoolean();
 
         if (IsCompressed)

@@ -133,24 +133,24 @@ public class SlisFrameEncoder : FrameEncoder
             return;
         }
 
-        Point offset = new(OffsetX, OffsetY);
+        Point hotSpot = new(HotSpotX, HotSpotY);
         if (Frame.CenterHotSpot.GetValueOrDefault())
         {
-            float deltaX = offset.X - _image.Width / 2f;
-            float deltaY = offset.Y - _image.Height / 2f;
+            float deltaX = hotSpot.X - _image.Width / 2f;
+            float deltaY = hotSpot.Y - _image.Height / 2f;
             float newWidth = _image.Width + 2 * Math.Abs(deltaX);
             float newHeight = _image.Height + 2 * Math.Abs(deltaY);
-            if (offset.X > 0)
+            if (hotSpot.X > 0)
             {
                 newWidth += _image.Width * 2;
             }
-            if (offset.Y > 0)
+            if (hotSpot.Y > 0)
             {
                 newHeight += _image.Height * 2;
             }
             Size newSize = new((int)newWidth, (int)newHeight);
-            int resultantX = newSize.Width / 2 + offset.X;
-            int resultantY = newSize.Height / 2 + offset.Y;
+            int resultantX = newSize.Width / 2 + hotSpot.X;
+            int resultantY = newSize.Height / 2 + hotSpot.Y;
             _image.Mutate(source =>
             {
                 ResizeOptions options = new()
@@ -170,11 +170,11 @@ public class SlisFrameEncoder : FrameEncoder
         }
         // The image's center is the hot spot location or
         // it has no defined offset.
-        else if ((offset.X + _image.Width / 2 != 0
-            || offset.Y + _image.Height / 2 != 0)
-            && (offset.X != 0 || offset.Y != 0))
+        else if ((hotSpot.X + _image.Width / 2 != 0
+            || hotSpot.Y + _image.Height / 2 != 0)
+            && (hotSpot.X != 0 || hotSpot.Y != 0))
         {
-            SlisHelper.OffsetImage(_image, offset);
+            SlisHelper.OffsetImage(_image, hotSpot);
         }
     }
 }
