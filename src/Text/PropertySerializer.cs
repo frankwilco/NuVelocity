@@ -194,8 +194,8 @@ public static class PropertySerializer
 #if NV_LOG
                 Console.WriteLine(
                     $"Skipping property {prop.Name} " +
-                    $"[curr: {sourceFilter}, " +
-                    $"exclude starting: {exclusionAttr.Source}]");
+                    $"[curr: {source}, " +
+                    $"exclude starting: {exclusionAttr.Flags}]");
 #endif
                 continue;
             }
@@ -207,8 +207,8 @@ public static class PropertySerializer
 #if NV_LOG
                 Console.WriteLine(
                     $"Skipping property {prop.Name} " +
-                    $"[curr: {sourceFilter}, " +
-                    $"include starting: {inclusionAttr.Source}]");
+                    $"[curr: {source}, " +
+                    $"include starting: {inclusionAttr.Flags}]");
 #endif
                 continue;
             }
