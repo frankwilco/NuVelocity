@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuVelocity", "src\NuVelocit
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuVelocity.Graphics.ImageSharp", "src\NuVelocity.Graphics.ImageSharp.csproj", "{19C3B2DE-D192-4D0A-81F4-B27010711B3E}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ICSharpCode.SharpZipLib", "..\NuVelocity.SharpZipLib\src\ICSharpCode.SharpZipLib\ICSharpCode.SharpZipLib.csproj", "{8DC94D58-2545-441B-BD5D-A9C6A169FB6D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{19C3B2DE-D192-4D0A-81F4-B27010711B3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{19C3B2DE-D192-4D0A-81F4-B27010711B3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{19C3B2DE-D192-4D0A-81F4-B27010711B3E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DC94D58-2545-441B-BD5D-A9C6A169FB6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DC94D58-2545-441B-BD5D-A9C6A169FB6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DC94D58-2545-441B-BD5D-A9C6A169FB6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DC94D58-2545-441B-BD5D-A9C6A169FB6D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

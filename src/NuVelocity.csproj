@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="SharpZipLib" Version="1.4.2" />
+    <ProjectReference Include="..\..\NuVelocity.SharpZipLib\src\ICSharpCode.SharpZipLib\ICSharpCode.SharpZipLib.csproj" />
   </ItemGroup>
 
   <ItemGroup>
