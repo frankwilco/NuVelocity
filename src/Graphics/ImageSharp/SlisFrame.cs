@@ -1,6 +1,7 @@
-﻿using SixLabors.ImageSharp;
+﻿using NuVelocity.Text;
+using SixLabors.ImageSharp;
 
-namespace NuVelocity.Graphics;
+namespace NuVelocity.Graphics.ImageSharp;
 
 [PropertyRoot("CStandAloneFrame", "Stand Alone Frame")]
 public class SlisFrame : Frame

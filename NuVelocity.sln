@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NuVelocity", "src\NuVelocity.csproj", "{4D0C9445-AB6C-4C99-8F15-3DF6101FC4C3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuVelocity", "src\NuVelocity.csproj", "{4D0C9445-AB6C-4C99-8F15-3DF6101FC4C3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuVelocity.Graphics.ImageSharp", "src\NuVelocity.Graphics.ImageSharp.csproj", "{19C3B2DE-D192-4D0A-81F4-B27010711B3E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{4D0C9445-AB6C-4C99-8F15-3DF6101FC4C3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4D0C9445-AB6C-4C99-8F15-3DF6101FC4C3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4D0C9445-AB6C-4C99-8F15-3DF6101FC4C3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19C3B2DE-D192-4D0A-81F4-B27010711B3E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19C3B2DE-D192-4D0A-81F4-B27010711B3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19C3B2DE-D192-4D0A-81F4-B27010711B3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19C3B2DE-D192-4D0A-81F4-B27010711B3E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

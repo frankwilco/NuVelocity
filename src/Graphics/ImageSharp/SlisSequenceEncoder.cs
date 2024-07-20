@@ -4,7 +4,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 
-namespace NuVelocity.Graphics;
+namespace NuVelocity.Graphics.ImageSharp;
 
 public class SlisSequenceEncoder : SequenceEncoder
 {
