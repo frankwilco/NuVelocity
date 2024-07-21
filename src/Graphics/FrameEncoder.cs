@@ -2,11 +2,15 @@
 
 namespace NuVelocity.Graphics;
 
-public abstract class FrameEncoder
+public abstract class FrameEncoder : IDisposable
 {
     protected Stream? _frameStream;
 
     protected Stream? _propertiesStream;
+
+    protected bool _disposedValue;
+
+    protected bool _leaveOpen;
 
     public Frame Frame { get; protected set; }
 
@@ -36,9 +40,12 @@ public abstract class FrameEncoder
     }
 
     [MemberNotNull(nameof(Frame))]
-    protected virtual void Reset()
+    protected virtual void Reset(bool disposing = false)
     {
-        Frame = new();
+        if (!disposing)
+        {
+            Frame = new();
+        }
         IsDoneDecoding = false;
         IsCompressed = default;
         HotSpotX = default;
@@ -51,7 +58,8 @@ public abstract class FrameEncoder
 
     public virtual void Decode(
         Stream frameStream,
-        Stream? propertiesStream)
+        Stream? propertiesStream,
+        bool leaveOpen = false)
     {
         _frameStream = frameStream ??
             throw new ArgumentNullException(nameof(frameStream));
@@ -64,6 +72,7 @@ public abstract class FrameEncoder
         {
             throw new ArgumentException(null, nameof(propertiesStream));
         }
+        _leaveOpen = leaveOpen;
 
         Reset();
 
@@ -77,4 +86,30 @@ public abstract class FrameEncoder
     }
 
     protected abstract void DecodeRaw();
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+            {
+                Reset(true);
+            }
+
+            if (!_leaveOpen)
+            {
+                _frameStream?.Dispose();
+                _propertiesStream?.Dispose();
+            }
+            _frameStream = null;
+            _propertiesStream = null;
+            _disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 }

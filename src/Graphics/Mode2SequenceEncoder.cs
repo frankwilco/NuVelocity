@@ -39,7 +39,7 @@ public class Mode2SequenceEncoder : SequenceEncoder
 
     public Mode2FrameEncoder[]? FrameData { get; protected set; }
 
-    protected override void Reset()
+    protected override void Reset(bool disposing = false)
     {
         Scan1 = default;
         Scan2 = default;
@@ -53,7 +53,7 @@ public class Mode2SequenceEncoder : SequenceEncoder
         CenterY = default;
         FrameData = null;
 
-        base.Reset();
+        base.Reset(disposing);
     }
 
     protected override void DecodeRaw()
@@ -62,7 +62,7 @@ public class Mode2SequenceEncoder : SequenceEncoder
         {
             throw new InvalidOperationException();
         }
-        using BinaryReader reader = new(_sequenceStream);
+        using BinaryReader reader = new(_sequenceStream, Encoding.UTF8, true);
 
         Scan1 = reader.ReadByte();
         Scan2 = reader.ReadByte();
@@ -189,7 +189,7 @@ public class Mode2SequenceEncoder : SequenceEncoder
                 throw new InvalidDataException();
             }
             Mode2FrameEncoder embeddedFrameEncoder = new(true);
-            embeddedFrameEncoder.Decode(_sequenceStream, null);
+            embeddedFrameEncoder.Decode(_sequenceStream, null, true);
             FrameData[frameDataIndex] = embeddedFrameEncoder;
             frameDataIndex++;
         }

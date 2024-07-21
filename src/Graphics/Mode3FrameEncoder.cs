@@ -1,4 +1,6 @@
-﻿using ICSharpCode.SharpZipLib.Zip.Compression;
+﻿using System.Text;
+using ICSharpCode.SharpZipLib.Core;
+using ICSharpCode.SharpZipLib.Zip.Compression;
 
 namespace NuVelocity.Graphics;
 
@@ -13,15 +15,14 @@ public class Mode3FrameEncoder : FrameEncoder
     public Mode3FrameEncoder()
         : base()
     {
-        _inflater = new();
+        _inflater = InflaterPool.Instance.Rent();
     }
 
-    protected override void Reset()
+    protected override void Reset(bool disposing = false)
     {
         IsPlanar = default;
-        _inflater.Reset();
 
-        base.Reset();
+        base.Reset(disposing);
     }
 
     protected override void DecodeRaw()
@@ -30,7 +31,7 @@ public class Mode3FrameEncoder : FrameEncoder
         {
             throw new InvalidOperationException();
         }
-        using BinaryReader reader = new(_frameStream);
+        using BinaryReader reader = new(_frameStream, Encoding.UTF8, true);
 
         PixelFormat = PixelFormat.Rgb888;
         LayerCount = 2;
@@ -89,5 +90,20 @@ public class Mode3FrameEncoder : FrameEncoder
                 throw new InvalidDataException();
             }
         }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+            {
+                InflaterPool.Instance.Return(_inflater);
+            }
+
+            _disposedValue = true;
+        }
+
+        base.Dispose(disposing);
     }
 }

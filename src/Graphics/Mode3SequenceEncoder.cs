@@ -1,12 +1,14 @@
-﻿using ICSharpCode.SharpZipLib.Zip.Compression;
+﻿using System.Text;
+using ICSharpCode.SharpZipLib.Core;
+using ICSharpCode.SharpZipLib.Zip.Compression;
 
 namespace NuVelocity.Graphics;
 
-public class Mode3SequenceEncoder : SequenceEncoder
+public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
 {
     private const byte kSignatureStandard = 0x01;
 
-    protected readonly Inflater _inflater;
+    protected Inflater _inflater;
 
     public bool IsDds
     {
@@ -35,10 +37,10 @@ public class Mode3SequenceEncoder : SequenceEncoder
         BlitTypeRevision blitTypeRevision = BlitTypeRevision.Type1)
         : base(blitTypeRevision)
     {
-        _inflater = new();
+        _inflater = InflaterPool.Instance.Rent();
     }
 
-    protected override void Reset()
+    protected override void Reset(bool disposing = false)
     {
         IsHD = default;
         ListData = null;
@@ -47,9 +49,8 @@ public class Mode3SequenceEncoder : SequenceEncoder
         AtlasWidth = null;
         AtlasHeight = null;
         SequenceFrameInfoList = null;
-        _inflater.Reset();
 
-        base.Reset();
+        base.Reset(disposing);
     }
 
     protected override void DecodeRaw()
@@ -58,7 +59,8 @@ public class Mode3SequenceEncoder : SequenceEncoder
         {
             throw new InvalidOperationException();
         }
-        using BinaryReader reader = new(_sequenceStream);
+        using BinaryReader reader = new(_sequenceStream, Encoding.UTF8, true);
+
         // Check if the embedded lists are uncompressed.
         bool hasHeader = HeaderUtils.CheckDeflateHeader(reader, false);
         // Check a different location for the deflate header
@@ -211,5 +213,20 @@ public class Mode3SequenceEncoder : SequenceEncoder
         {
             Sequence.FramesPerSecond = SequenceFrameInfoList.FramesPerSecond;
         }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+            {
+                InflaterPool.Instance.Return(_inflater);
+            }
+
+            _disposedValue = true;
+        }
+
+        base.Dispose(disposing);
     }
 }

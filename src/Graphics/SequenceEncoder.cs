@@ -2,13 +2,17 @@
 
 namespace NuVelocity.Graphics;
 
-public abstract class SequenceEncoder
+public abstract class SequenceEncoder : IDisposable
 {
     protected Stream? _sequenceStream;
 
     protected Stream? _propertiesStream;
 
     protected bool _hasProperties;
+
+    protected bool _disposedValue;
+
+    protected bool _leaveOpen;
 
     public Sequence Sequence { get; protected set; }
 
@@ -34,19 +38,24 @@ public abstract class SequenceEncoder
     }
 
     [MemberNotNull(nameof(Sequence))]
-    protected virtual void Reset()
+    protected virtual void Reset(bool disposing = false)
     {
-        Sequence = new();
+        if (!disposing)
+        {
+            Sequence = new();
+        }
         _hasProperties = false;
         IsDoneDecoding = false;
         IsCompressed = false;
         IsFont = false;
+        Font = null;
         IsEmpty = false;
     }
 
     public virtual void Decode(
         Stream sequenceStream,
-        Stream? propertiesStream)
+        Stream? propertiesStream,
+        bool leaveOpen = false)
     {
         _sequenceStream = sequenceStream ??
             throw new ArgumentNullException(nameof(sequenceStream));
@@ -59,6 +68,7 @@ public abstract class SequenceEncoder
         {
             throw new ArgumentException(null, nameof(propertiesStream));
         }
+        _leaveOpen = leaveOpen;
 
         Reset();
 
@@ -73,4 +83,30 @@ public abstract class SequenceEncoder
     }
 
     protected abstract void DecodeRaw();
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+            {
+                Reset(true);
+            }
+
+            if (!_leaveOpen)
+            {
+                _sequenceStream?.Dispose();
+                _propertiesStream?.Dispose();
+            }
+            _sequenceStream = null;
+            _propertiesStream = null;
+            _disposedValue = true;
+        }
+    }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
 }
