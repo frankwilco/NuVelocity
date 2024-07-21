@@ -6,119 +6,131 @@ using SixLabors.ImageSharp.Processing;
 
 namespace NuVelocity.Graphics.ImageSharp;
 
-public class SlisSequenceEncoder : SequenceEncoder
+public static class SequenceEncoderExtensions
 {
-    public Image? Spritesheet { get; protected set; }
-
-    public SlisSequenceEncoder(
-        EncoderFormat format,
-        Stream frameStream,
-        Stream? propertiesStream)
-        : base(frameStream, propertiesStream, format)
+    public static Image[]? ToImages(this Mode2SequenceEncoder encoder)
     {
-    }
-
-    public SlisSequence SlisSequence
-    {
-        get => (SlisSequence)Sequence;
-    }
-
-    protected override void InitializeSequence()
-    {
-        Sequence = new SlisSequence();
-    }
-
-    protected override FrameEncoder BuildFrameEncoder(Stream frameStream)
-    {
-        return new SlisFrameEncoder(Format, frameStream, null, true);
-    }
-
-    protected override void LoadMode1Sequence()
-    {
-        throw new NotImplementedException();
-    }
-
-    protected override void LoadMode2Sequence()
-    {
-        if (FrameData == null)
+        if (!encoder.IsDoneDecoding)
         {
-            return;
+            return null;
         }
 
-        Image[] images = new Image[FrameData.Length];
-        for (int i = 0; i < FrameData.Length; i++)
+        Mode2FrameEncoder[]? frameEncoders = encoder.FrameData;
+        if (frameEncoders == null)
         {
-            SlisFrameEncoder? frameEncoder = (SlisFrameEncoder)FrameData[i];
-            if (frameEncoder == null ||
-                frameEncoder.SlisFrame.Texture == null)
+            return null;
+        }
+
+        Image[] images = new Image[frameEncoders.Length];
+        for (int i = 0; i < frameEncoders.Length; i++)
+        {
+            Mode2FrameEncoder? frameEncoder = frameEncoders[i];
+            Image? frameImage = frameEncoder.ToImage();
+            if (frameEncoder == null || frameImage == null)
             {
                 images[i] = new Image<Rgba32>(1, 1);
                 continue;
             }
-            images[i] = frameEncoder.SlisFrame.Texture;
+            images[i] = frameImage;
         }
 
-        SlisSequence.Textures = images;
+        return images;
     }
 
-    protected override void LoadMode3Sequence()
+    private static void ThrowIfSpriteAtlasDimensionsAreZero(Mode3SequenceEncoder encoder)
     {
-        if (ImageData1 == null)
+        if (encoder.AtlasWidth == null || encoder.AtlasHeight == null)
         {
-            if (IsEmpty)
-            {
-                SlisSequence.Textures = new Image[1]
-                {
-                    new Image<Rgba32>(1, 1)
-                };
-                return;
-            }
-            return;
+            throw new InvalidDataException();
         }
-        
-        if (IsHD)
+    }
+
+    public static Image? ToSpriteAtlasImage(this Mode3SequenceEncoder encoder)
+    {
+        if (!encoder.IsDoneDecoding)
         {
-            if (!IsDds)
+            return null;
+        }
+
+        if (encoder.ImageData == null)
+        {
+            return null;
+        }
+
+        Image? spriteAtlas = null;
+        if (encoder.IsHD)
+        {
+            if (!encoder.IsDds)
             {
-                Spritesheet = SlisHelper.LoadInterleavedRgbaImage(
-                    ImageData1, BaseWidth, BaseHeight);
+                ThrowIfSpriteAtlasDimensionsAreZero(encoder);
+                spriteAtlas = SlisHelper.LoadInterleavedRgba8888Image(
+                    encoder.ImageData,
+                    encoder.AtlasWidth!.Value,
+                    encoder.AtlasHeight!.Value);
             }
         }
-        else if (IsCompressed)
+        else if (encoder.IsCompressed)
         {
-            Spritesheet = SlisHelper.LoadPlanarRgbaImage(
-                ImageData1, BaseWidth, BaseHeight);
+            ThrowIfSpriteAtlasDimensionsAreZero(encoder);
+            spriteAtlas = SlisHelper.LoadPlanarRgba8888Image(
+                encoder.ImageData,
+                encoder.AtlasWidth!.Value,
+                encoder.AtlasHeight!.Value);
         }
         else
         {
-            Spritesheet = SlisHelper.LoadJpegImage(ImageData1, ImageData2);
-            BaseWidth = Spritesheet.Width;
-            BaseHeight = Spritesheet.Height;
+            spriteAtlas = SlisHelper.LoadJpegImage(
+                encoder.ImageData,
+                encoder.AlphaChannelData);
         }
 
         // Return early if there's no need to process the image further.
-        if (Spritesheet == null && !IsDds)
+        if (spriteAtlas == null && !encoder.IsDds)
         {
-            return;
+            return null;
         }
 
-        int baseXOffset = Sequence.XOffset ?? 0;
-        int baseYOffset = Sequence.YOffset ?? 0;
+        return spriteAtlas;
+    }
 
-        if (SequenceFrameInfoList == null)
+    public static Image[]? ToImages(this Mode3SequenceEncoder encoder)
+    {
+        if (!encoder.IsDoneDecoding)
+        {
+            return null;
+        }
+
+        if (encoder.ImageData == null)
+        {
+            if (encoder.IsEmpty)
+            {
+                return new Image[1]
+                {
+                    new Image<Rgba32>(1, 1)
+                };
+            }
+            return null;
+        }
+
+        Image? spriteAtlas = encoder.ToSpriteAtlasImage();
+
+        int baseXOffset = encoder.Sequence.XOffset ?? 0;
+        int baseYOffset = encoder.Sequence.YOffset ?? 0;
+
+        if (encoder.SequenceFrameInfoList == null)
         {
             throw new InvalidOperationException();
         } 
 
-        Image[] images = new Image[SequenceFrameInfoList.Values.Length];
-        Point[] offsets = new Point[SequenceFrameInfoList.Values.Length];
+        Image[] images = new Image[encoder.SequenceFrameInfoList.Values.Length];
+        Point[] offsets = new Point[encoder.SequenceFrameInfoList.Values.Length];
 
         int pixelsRead = 0;
         Size maxSize = new();
         Point hotSpot = new();
-        for (int i = 0; i < SequenceFrameInfoList.Values.Length; i++)
+        for (int i = 0; i < encoder.SequenceFrameInfoList.Values.Length; i++)
         {
-            var frameInfo = SequenceFrameInfoList.Values[i];
+            var frameInfo = encoder.SequenceFrameInfoList.Values[i];
             // Represent empty frames with a 1x1 transparent image.
             if (frameInfo == null)
             {
@@ -139,11 +151,11 @@ public class SlisSequenceEncoder : SequenceEncoder
                 frameInfo.Bottom - frameInfo.Top);
 
             Image image;
-            if (IsDds)
+            if (encoder.IsDds)
             {
                 int pixels = cropRect.Width * cropRect.Height;
                 byte[] buffer = new byte[pixels];
-                Buffer.BlockCopy(ImageData1, pixelsRead, buffer, 0, pixels);
+                Buffer.BlockCopy(encoder.ImageData, pixelsRead, buffer, 0, pixels);
 
                 BcDecoder decoder = new();
                 image = decoder.DecodeRawToImageRgba32(buffer,
@@ -154,24 +166,18 @@ public class SlisSequenceEncoder : SequenceEncoder
             }
             else
             {
-                // XXX: Spritesheet will never be null.
-                if (Spritesheet == null)
+                // XXX: This should never be null.
+                if (spriteAtlas == null)
                 {
                     continue;
                 }
-                image = Spritesheet.Clone(x => x.Crop(cropRect));
+                image = spriteAtlas.Clone(x => x.Crop(cropRect));
             }
             images[i] = image;
 
             float newWidth = 0;
             float newHeight = 0;
-            if (!Sequence.CenterHotSpot.GetValueOrDefault())
-            {
-                SlisHelper.OffsetImage(image, offset);
-                newWidth = image.Width;
-                newHeight = image.Height;
-            }
-            else
+            if (encoder.Sequence.CenterHotSpot.GetValueOrDefault())
             {
                 float deltaX = offset.X - image.Width / 2f;
                 float deltaY = offset.Y - image.Height / 2f;
@@ -185,6 +191,12 @@ public class SlisSequenceEncoder : SequenceEncoder
                 {
                     newHeight += image.Height * 2;
                 }
+            }
+            else
+            {
+                SlisHelper.OffsetImage(image, offset);
+                newWidth = image.Width;
+                newHeight = image.Height;
             }
             if (newWidth >= maxSize.Width)
             {
@@ -210,7 +222,7 @@ public class SlisSequenceEncoder : SequenceEncoder
             // Case 2: The image's position should be adjusted relative
             // to the hot spot location of the frame with the largest
             // dimensions in the sequence.
-            if (Sequence.CenterHotSpot.GetValueOrDefault())
+            if (encoder.Sequence.CenterHotSpot.GetValueOrDefault())
             {
                 resultantX = hotSpot.X + offset.X;
                 resultantY = hotSpot.Y + offset.Y;
@@ -234,6 +246,6 @@ public class SlisSequenceEncoder : SequenceEncoder
             });
         }
 
-        SlisSequence.Textures = images;
+        return images;
     }
 }

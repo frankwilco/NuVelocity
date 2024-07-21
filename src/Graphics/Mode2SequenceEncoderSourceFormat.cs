@@ -1,7 +1,9 @@
 ﻿namespace NuVelocity.Graphics;
 
-public enum SequenceEncoderMode2Game
+public enum Mode2SequenceEncoderSourceFormat
 {
+    None = 0,
+
     StarTrekAwayTeam = 0x44128000,
     RicochetLostWorlds = 0x43760000,
     Wik = 0x43680000,

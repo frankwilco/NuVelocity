@@ -45,7 +45,7 @@ internal static class SlisHelper
         return image;
     }
 
-    internal static Image<Rgba32> LoadPlanarRgbaImage(byte[] rawImageData, int width, int height)
+    internal static Image<Rgba32> LoadPlanarRgba8888Image(byte[] rawImageData, int width, int height)
     {
         byte[] imageData = new byte[rawImageData.Length];
         rawImageData.CopyTo(imageData, 0);
@@ -84,7 +84,7 @@ internal static class SlisHelper
             new ReadOnlySpan<Rgba32>(pixelData), width, height);
     }
 
-    internal static Image<Rgba32> LoadInterleavedRgbaImage(byte[] imageData, int width, int height)
+    internal static Image<Rgba32> LoadInterleavedRgba8888Image(byte[] imageData, int width, int height)
     {
         Rgba32[] pixelData = new Rgba32[width * height];
 
@@ -103,6 +103,62 @@ internal static class SlisHelper
 
         return Image.LoadPixelData(
             new ReadOnlySpan<Rgba32>(pixelData), width, height);
+    }
+
+    internal static Image LoadCompressedRgb565Image(byte[][]? layerData, int layerCount, int width, int height)
+    {
+        Rgba32[] pixelData = new Rgba32[width * height];
+
+        var opaqueData =
+            (layerData?[0]) ?? throw new InvalidDataException();
+        bool has5Layers = layerCount == 5;
+        var alphaData = layerData?[has5Layers ? 3 : 1];
+        var translucentData = layerData?[has5Layers ? 4 : 2];
+        if (alphaData == null && translucentData == null)
+        {
+            DecodeRleLayer(pixelData, opaqueData, null, true);
+        }
+        else
+        {
+            if (alphaData == null || translucentData == null)
+            {
+                throw new InvalidDataException();
+            }
+
+            DecodeRleLayer(pixelData, opaqueData, null, true);
+            DecodeRleLayer(pixelData, translucentData, alphaData, false);
+        }
+
+        return Image.LoadPixelData(
+            new ReadOnlySpan<Rgba32>(pixelData), width, height);
+    }
+
+    internal static Image? LoadInterleavedRgb565Image(byte[]? imageData, int width, int height)
+    {
+        if (imageData == null)
+        {
+            return null;
+        }
+
+        Bgr565[] pixelData = new Bgr565[width * height];
+
+        int pixelIndex = 0;
+        int dataIndex = 0;
+        while (dataIndex < imageData.Length)
+        {
+            EncoderHelper.ReadRgb565Pixel(
+                imageData,
+                dataIndex,
+                out float r,
+                out float g,
+                out float b);
+            pixelData[pixelIndex] = new(r, g, b);
+            pixelIndex++;
+            dataIndex += 2;
+        }
+
+        return Image.LoadPixelData(
+            new ReadOnlySpan<Bgr565>(pixelData), width, height);
     }
 
     internal static void DecodeRleLayer(
@@ -236,5 +292,61 @@ internal static class SlisHelper
             };
             source.Resize(options);
         });
+    }
+
+    internal static void ApplyHotSpotTransform(
+        Image? image,
+        bool centerHotSpot,
+        int hotSpotX,
+        int hotSpotY)
+    {
+        if (image == null)
+        {
+            return;
+        }
+
+        Point hotSpot = new(hotSpotX, hotSpotY);
+        if (centerHotSpot)
+        {
+            float deltaX = hotSpot.X - image.Width / 2f;
+            float deltaY = hotSpot.Y - image.Height / 2f;
+            float newWidth = image.Width + 2 * Math.Abs(deltaX);
+            float newHeight = image.Height + 2 * Math.Abs(deltaY);
+            if (hotSpot.X > 0)
+            {
+                newWidth += image.Width * 2;
+            }
+            if (hotSpot.Y > 0)
+            {
+                newHeight += image.Height * 2;
+            }
+            Size newSize = new((int)newWidth, (int)newHeight);
+            int resultantX = newSize.Width / 2 + hotSpot.X;
+            int resultantY = newSize.Height / 2 + hotSpot.Y;
+            image.Mutate(source =>
+            {
+                ResizeOptions options = new()
+                {
+                    Size = newSize,
+                    Mode = ResizeMode.Manual,
+                    Sampler = KnownResamplers.NearestNeighbor,
+                    PadColor = Color.Transparent,
+                    TargetRectangle = new Rectangle(
+                        resultantX,
+                        resultantY,
+                        image.Width,
+                        image.Height)
+                };
+                source.Resize(options);
+            });
+        }
+        // The image's center is the hot spot location or
+        // it has no defined offset.
+        else if ((hotSpot.X + image.Width / 2 != 0
+            || hotSpot.Y + image.Height / 2 != 0)
+            && (hotSpot.X != 0 || hotSpot.Y != 0))
+        {
+            OffsetImage(image, hotSpot);
+        }
     }
 }

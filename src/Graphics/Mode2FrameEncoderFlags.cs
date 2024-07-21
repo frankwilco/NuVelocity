@@ -1,7 +1,7 @@
 ﻿namespace NuVelocity.Graphics;
 
 [Flags]
-public enum EncoderMode2Flags
+public enum Mode2FrameEncoderFlags
 {
     None = 0,
     Frm8With5LayersOrFrm16With3Layers = 0b00000000_00000000_00000000_00100000,
