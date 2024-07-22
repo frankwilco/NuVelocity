@@ -143,27 +143,27 @@ public class Mode2SequenceEncoder : SequenceEncoder
         {
             case Mode2SequenceEncoderSourceFormat.Zax:
             case Mode2SequenceEncoderSourceFormat.StarTrekAwayTeam:
-                DecodeMode2PropertyListForZax(reader);
+                DecodePropertyListForZax(reader);
                 break;
             case Mode2SequenceEncoderSourceFormat.ZaxBitmapFont:
             case Mode2SequenceEncoderSourceFormat.StarTrekAwayTeamBitmapFont:
-                DecodeMode2PropertyListForZax(reader);
+                DecodePropertyListForZax(reader);
                 DecodeFontBitmapPropertyList(reader);
                 break;
             case Mode2SequenceEncoderSourceFormat.RicochetLostWorlds:
-                DecodeMode2PropertyListForRicochetLostWorlds(reader);
+                DecodePropertyListForRicochetLostWorlds(reader);
                 break;
             case Mode2SequenceEncoderSourceFormat.SwarmOrRicochetXtreme:
             case Mode2SequenceEncoderSourceFormat.RicochetXtremeLegacy:
-                DecodeMode2PropertyListForSwarm(reader);
+                DecodePropertyListForSwarm(reader);
                 break;
             case Mode2SequenceEncoderSourceFormat.SwarmOrRicochetXtremeBitmapFont:
             case Mode2SequenceEncoderSourceFormat.RicochetXtremeLegacyBitmapFont:
-                DecodeMode2PropertyListForSwarm(reader);
+                DecodePropertyListForSwarm(reader);
                 DecodeFontBitmapPropertyList(reader);
                 break;
             case Mode2SequenceEncoderSourceFormat.Lionheart:
-                DecodeMode2PropertyListForLionheart(reader);
+                DecodePropertyListForLionheart(reader);
                 break;
             case Mode2SequenceEncoderSourceFormat.Wik:
             default:
@@ -195,7 +195,7 @@ public class Mode2SequenceEncoder : SequenceEncoder
         }
     }
 
-    private void DecodeMode2PropertyListForZax(BinaryReader reader)
+    private void DecodePropertyListForZax(BinaryReader reader)
     {
         Sequence.Flags |= PropertySerializationFlags.HasSimpleFormat;
         Sequence.BlendedWithBlack = reader.ReadBoolean();
@@ -206,7 +206,7 @@ public class Mode2SequenceEncoder : SequenceEncoder
         Sequence.YOffset = reader.ReadInt32();
     }
 
-    private void DecodeMode2PropertyListForRicochetLostWorlds(BinaryReader reader)
+    private void DecodePropertyListForRicochetLostWorlds(BinaryReader reader)
     {
         Sequence.Flags |= PropertySerializationFlags.HasJpegQuality2;
         Sequence.XOffset = reader.ReadInt32();
@@ -223,7 +223,7 @@ public class Mode2SequenceEncoder : SequenceEncoder
         Sequence.JpegQuality2 = reader.ReadInt32();
     }
 
-    private void DecodeMode2PropertyListForSwarm(BinaryReader reader)
+    private void DecodePropertyListForSwarm(BinaryReader reader)
     {
         Sequence.Flags |= PropertySerializationFlags.HasLegacyImageQuality;
         Sequence.XOffset = reader.ReadInt32();
@@ -247,7 +247,7 @@ public class Mode2SequenceEncoder : SequenceEncoder
         }
     }
 
-    private void DecodeMode2PropertyListForLionheart(BinaryReader reader)
+    private void DecodePropertyListForLionheart(BinaryReader reader)
     {
         Sequence.Flags |= PropertySerializationFlags.HasLegacyImageQuality;
         Sequence.XOffset = reader.ReadInt32();
