@@ -104,9 +104,12 @@ public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
         {
             if (IsFont)
             {
-                int firstAscii = reader.ReadInt32();
-                int lastAscii = reader.ReadInt32();
-                int lineHeight = reader.ReadInt32();
+                Font = new()
+                {
+                    FirstAscii = reader.ReadInt32(),
+                    LastAscii = reader.ReadInt32(),
+                    XHeight = reader.ReadInt32()
+                };
             }
 
             int signature = reader.ReadByte();
