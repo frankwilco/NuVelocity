@@ -26,4 +26,25 @@ public class SequenceFrameInfoList
 
     [Property("FPS")]
     public float FramesPerSecond { get; set; }
+
+    public void CopyTo(Sequence sequence, BlitTypeRevision revision)
+    {
+        sequence.CenterHotSpot ??= Flags.HasFlag(
+            SequenceFlags.CenterHotSpot);
+        sequence.BlendedWithBlack ??= Flags.HasFlag(
+            SequenceFlags.BlendedWithBlack);
+        sequence.CropClor0 ??= Flags.HasFlag(
+            SequenceFlags.CropColor0);
+        sequence.Use8BitAlpha ??= Flags.HasFlag(
+            SequenceFlags.Use8BitAlpha);
+        sequence.IsRle ??= Flags.HasFlag(
+            SequenceFlags.RunLengthEncode);
+        sequence.DoDither ??= Flags.HasFlag(
+            SequenceFlags.DoDither);
+        sequence.IsLossless ??= Flags.HasFlag(
+            SequenceFlags.Lossless);
+        sequence.BlitType ??= BlitTypeConverter.Int32ToType(
+            BlitType, revision);
+        sequence.FramesPerSecond ??= FramesPerSecond;
+    }
 }
