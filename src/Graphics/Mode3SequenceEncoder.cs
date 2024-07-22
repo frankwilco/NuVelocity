@@ -20,6 +20,10 @@ public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
         }
     }
 
+    public byte? Scan1 { get; protected set; }
+
+    public byte? Scan2 { get; protected set; }
+
     public bool IsHD { get; protected set; }
 
     public byte[]? ListData { get; protected set; }
@@ -47,6 +51,8 @@ public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
     [MemberNotNull(nameof(SequenceFrameInfoList))]
     protected override void Reset(bool disposing = false)
     {
+        Scan1 = null;
+        Scan2 = null;
         IsHD = default;
         ListData = null;
         ImageData = null;
@@ -155,7 +161,7 @@ public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
             IsCompressed = reader.ReadBoolean();
             if (IsCompressed)
             {
-                byte unknown1 = reader.ReadByte(); // unknown value
+                Scan1 = reader.ReadByte(); // unknown value
                 int imageDeflatedSize = reader.ReadInt32();
                 int imageInflatedSize = reader.ReadInt32();
                 ImageData = new byte[imageInflatedSize];
@@ -204,7 +210,7 @@ public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
             ImageData = reader.ReadBytes((int)distanceToEof);
             return;
         }
-        byte unknown1 = reader.ReadByte(); // unknown value
+        Scan2 = reader.ReadByte(); // unknown value
         int imageSize = reader.ReadInt32();
         ImageData = reader.ReadBytes(imageSize);
         AtlasWidth = reader.ReadInt32();
