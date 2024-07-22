@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace NuVelocity.Graphics;
+﻿namespace NuVelocity.Graphics;
 
 public abstract class FrameEncoder : IDisposable
 {
@@ -36,13 +34,13 @@ public abstract class FrameEncoder : IDisposable
     {
         _frameStream = null;
         _propertiesStream = null;
-        Reset();
+        Frame = new();
+        Reset(true);
     }
 
-    [MemberNotNull(nameof(Frame))]
-    protected virtual void Reset(bool disposing = false)
+    protected virtual void Reset(bool isPartial = false)
     {
-        if (!disposing)
+        if (!isPartial)
         {
             Frame = new();
         }

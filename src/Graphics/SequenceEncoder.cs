@@ -1,6 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-
-namespace NuVelocity.Graphics;
+﻿namespace NuVelocity.Graphics;
 
 public abstract class SequenceEncoder : IDisposable
 {
@@ -34,13 +32,13 @@ public abstract class SequenceEncoder : IDisposable
         _sequenceStream = null;
         _propertiesStream = null;
         BlitTypeRevision = blitTypeRevision;
-        Reset();
+        Sequence = new();
+        Reset(true);
     }
 
-    [MemberNotNull(nameof(Sequence))]
-    protected virtual void Reset(bool disposing = false)
+    protected virtual void Reset(bool isPartial = false)
     {
-        if (!disposing)
+        if (!isPartial)
         {
             Sequence = new();
         }

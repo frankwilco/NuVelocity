@@ -18,11 +18,11 @@ public class Mode3FrameEncoder : FrameEncoder
         _inflater = InflaterPool.Instance.Rent();
     }
 
-    protected override void Reset(bool disposing = false)
+    protected override void Reset(bool isPartial = false)
     {
         IsPlanar = default;
 
-        base.Reset(disposing);
+        base.Reset(isPartial);
     }
 
     protected override void DecodeRaw()

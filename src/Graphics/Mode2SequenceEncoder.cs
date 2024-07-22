@@ -39,7 +39,7 @@ public class Mode2SequenceEncoder : SequenceEncoder
 
     public Mode2FrameEncoder[]? FrameData { get; protected set; }
 
-    protected override void Reset(bool disposing = false)
+    protected override void Reset(bool isPartial = false)
     {
         Scan1 = default;
         Scan2 = default;
@@ -53,7 +53,7 @@ public class Mode2SequenceEncoder : SequenceEncoder
         CenterY = default;
         FrameData = null;
 
-        base.Reset(disposing);
+        base.Reset(isPartial);
     }
 
     protected override void DecodeRaw()

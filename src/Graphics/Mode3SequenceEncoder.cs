@@ -43,13 +43,10 @@ public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
         : base(blitTypeRevision)
     {
         _inflater = InflaterPool.Instance.Rent();
-        // XXX: This will never be null at this point since the base
-        // constructor already initializes this for us by calling Reset().
-        SequenceFrameInfoList ??= new SequenceFrameInfoList();
+        SequenceFrameInfoList = new SequenceFrameInfoList();
     }
 
-    [MemberNotNull(nameof(SequenceFrameInfoList))]
-    protected override void Reset(bool disposing = false)
+    protected override void Reset(bool isPartial = false)
     {
         Scan1 = null;
         Scan2 = null;
@@ -59,9 +56,12 @@ public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
         AlphaChannelData = null;
         AtlasWidth = null;
         AtlasHeight = null;
-        SequenceFrameInfoList = new();
+        if (!isPartial)
+        {
+            SequenceFrameInfoList = new();
+        }
 
-        base.Reset(disposing);
+        base.Reset(isPartial);
     }
 
     protected override void DecodeRaw()

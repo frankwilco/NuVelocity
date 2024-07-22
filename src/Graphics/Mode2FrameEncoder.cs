@@ -22,14 +22,14 @@ public class Mode2FrameEncoder : FrameEncoder
         IsEmbedded = isEmbedded;
     }
 
-    protected override void Reset(bool disposing = false)
+    protected override void Reset(bool isPartial = false)
     {
         FormatVersion = default;
         Unknown1 = default;
         Flags = Mode2FrameEncoderFlags.None;
         LayerPixelOffsets = null;
 
-        base.Reset(disposing);
+        base.Reset(isPartial);
     }
 
     protected override void DecodeRaw()
