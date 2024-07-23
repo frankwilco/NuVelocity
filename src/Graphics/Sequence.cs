@@ -19,7 +19,7 @@ public class Sequence
     // TN: Exclusive to Lionheart.
     [Property("Menu Position")]
     [PropertyDynamic]
-    public Coordinate? MenuPosition { get; set; }
+    public Coordinates? MenuPosition { get; set; }
 
     // TN: Exclusive to Ricochet Lost Worlds and Ricochet Infinity.
     [Property("Sequence of Coordinates")]
