@@ -7,15 +7,12 @@ public sealed class PropertyRootAttribute : Attribute
 {
     public string ClassName { get; }
     public string FriendlyName { get; }
-    public bool IsSingleValue { get; }
 
     public PropertyRootAttribute(
         string className,
-        string friendlyName = "",
-        bool isSingleValue = false)
+        string friendlyName = "")
     {
         ClassName = className;
         FriendlyName = friendlyName;
-        IsSingleValue = isSingleValue;
     }
 }

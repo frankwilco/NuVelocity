@@ -124,7 +124,7 @@ public static class PropertySerializer
         }
 
         // 5: Write the serialized value from the object.
-        else if (propValue is IPropertySerializable propSerializable)
+        else if (propValue is IPropertyListSerializable propSerializable)
         {
             builder.AppendLine(propSerializable.Serialize());
         }
@@ -166,17 +166,10 @@ public static class PropertySerializer
             return false;
         }
 
-        // Write the value directly if this is a single value property.
-        if (rootAttr.IsSingleValue)
+        // Call the target's custom serialization logic, if present.
+        if (target is IPropertyListSerializable targetSerializable)
         {
-            if (target is IPropertySerializable targetSerializable)
-            {
-                builder.AppendLine(targetSerializable.Serialize());
-            }
-            else
-            {
-                builder.AppendLine(target.ToString());
-            }
+            builder.AppendLine(targetSerializable.Serialize());
             return true;
         }
 
@@ -300,7 +293,7 @@ public static class PropertySerializer
     public static bool Deserialize(
         StreamReader reader,
         object target,
-        bool isInner = false,
+        bool isChild = false,
         string classNameOrValue = "")
     {
         if (reader is null)
@@ -320,9 +313,9 @@ public static class PropertySerializer
             return false;
         }
 
-        if (isInner &&
-            classAttr.IsSingleValue &&
-            target is IPropertySerializable classSerializable)
+        // Ignore custom property list serialization logic if it is not
+        // a child property list.
+        if (isChild && target is IPropertyListSerializable classSerializable)
         {
             classSerializable.Deserialize(classNameOrValue);
             return true;
@@ -410,7 +403,7 @@ public static class PropertySerializer
                     arrayPropInfo = null;
                     arrayElemType = null;
                 }
-                if (isInner)
+                if (isChild)
                 {
                     break;
                 }
@@ -654,7 +647,6 @@ public static class PropertySerializer
         {
             throw new ArgumentNullException(nameof(target));
         }
-
         using StreamReader reader = new(stream);
         return Deserialize(reader, target);
     }

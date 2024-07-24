@@ -1,6 +1,6 @@
 ﻿namespace NuVelocity.Text;
 
-public interface IPropertySerializable
+public interface IPropertyListSerializable
 {
     public string Serialize();
     public void Deserialize(string context);
