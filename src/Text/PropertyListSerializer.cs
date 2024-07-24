@@ -5,7 +5,7 @@ using System.Text;
 
 namespace NuVelocity.Text;
 
-public static class PropertySerializer
+public static class PropertyListSerializer
 {
     private const string kDynamicPropertiesKey = "Dynamic Properties";
 

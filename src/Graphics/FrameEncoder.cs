@@ -76,7 +76,7 @@ public abstract class FrameEncoder : IDisposable
 
         if (_propertiesStream != null)
         {
-            PropertySerializer.Deserialize(_propertiesStream, Frame);
+            PropertyListSerializer.Deserialize(_propertiesStream, Frame);
         }
 
         DecodeRaw();

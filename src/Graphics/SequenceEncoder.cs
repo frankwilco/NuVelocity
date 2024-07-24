@@ -72,7 +72,7 @@ public abstract class SequenceEncoder : IDisposable
 
         if (_propertiesStream != null)
         {
-            _hasProperties = PropertySerializer.Deserialize(
+            _hasProperties = PropertyListSerializer.Deserialize(
                 _propertiesStream, Sequence);
         }
 

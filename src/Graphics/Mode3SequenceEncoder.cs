@@ -91,8 +91,8 @@ public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
             DecodeStandardHeader(reader);
         }
 
-        _hasProperties = PropertySerializer.Deserialize(ListData, Sequence);
-        PropertySerializer.Deserialize(ListData, SequenceFrameInfoList);
+        _hasProperties = PropertyListSerializer.Deserialize(ListData, Sequence);
+        PropertyListSerializer.Deserialize(ListData, SequenceFrameInfoList);
         DecodeSequenceFrameInfoList();
     }
 
