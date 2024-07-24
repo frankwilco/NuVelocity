@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using System.Collections;
+using System.Reflection;
+using System.Runtime.Serialization;
 using System.Text;
 
 namespace NuVelocity.Text;
@@ -91,56 +93,99 @@ public static class PropertySerializer
             builder.AppendLine(enumValue);
         }
 
-        // 4: Write array values.
+        // 4: Write list values.
+        else if (propertyType.IsGenericType &&
+            propertyType.GetGenericTypeDefinition() == ListType)
+        {
+            ICollection listValue = (ICollection)propValue;
+            WritePropertyArrayList(
+                propAttr,
+                builder,
+                depth,
+                source,
+                listValue,
+                listValue.Count);
+        }
+
+        // 5: Write array values.
         else if (propertyType.IsArray)
         {
             Array arrayValue = (Array)propValue;
-            // Write property type (Array).
-            builder.AppendLine("Array");
-            builder.Append('\t', depth + 1);
-            builder.AppendLine("{");
-            // Check first if array elements have a property root attribute.
-            // Otherwise, we can't serialize this object without it.
-            Type? elemType = propertyType.GetElementType()
-                ?? throw new InvalidDataException();
-            PropertyRootAttribute? elemAttr = elemType
-                .GetCustomAttribute<PropertyRootAttribute>();
-            if (elemAttr != null)
-            {
-                // Write array element count.
-                builder.Append('\t', depth + 2);
-                builder.AppendLine($"Item Count={arrayValue.Length}");
-                // Write all array elements.
-                foreach (object item in arrayValue)
-                {
-                    builder.Append('\t', depth + 2);
-                    builder.Append($"{elemAttr.FriendlyName}=");
-                    // Null elements are still represented. They
-                    // serialize as empty (CObject=).
-                    if (!WritePropertyList(builder, item, depth + 3, source))
-                    {
-                        builder.AppendLine();
-                    }
-                }
-            }
-            // Terminate the array.
-            builder.Append('\t', depth + 1);
-            builder.AppendLine("}");
+            WritePropertyArrayList(
+                propAttr,
+                builder,
+                depth,
+                source,
+                arrayValue,
+                arrayValue.Length);
         }
 
-        // 5: Write the serialized value from the object.
+        // 6: Write the serialized value from the object.
         else if (propValue is IPropertyListSerializable propSerializable)
         {
             builder.AppendLine(propSerializable.Serialize());
         }
 
-        // 6: Write the string representation (fallback).
+        // 7: Write the string representation (fallback).
         else
         {
             builder.AppendLine(propValue.ToString());
         }
 
         return true;
+    }
+
+    private static void WritePropertyArrayList(
+        PropertyAttribute propAttr,
+        StringBuilder builder,
+        int depth,
+        PropertySerializationFlags source,
+        IEnumerable collection,
+        int collectionLength)
+    {
+        // Write property type (Array).
+        builder.AppendLine(PropertyArrayAttribute.ClassName);
+        builder.Append('\t', depth + 1);
+        builder.AppendLine("{");
+
+        // Check if this array is marked by an array property attribute.
+        if (propAttr is PropertyArrayAttribute propArrayAttr)
+        {
+            // Write array element count.
+            builder.Append('\t', depth + 2);
+            builder.AppendLine(
+                $"{propArrayAttr.ItemCountName}={collectionLength}");
+            // Write all array elements.
+            foreach (object item in collection)
+            {
+                builder.Append('\t', depth + 2);
+                builder.Append($"{propArrayAttr.ItemName}=");
+                // Null elements are still represented. They
+                // serialize as empty (CObject=).
+                if (!WritePropertyList(builder, item, depth + 3, source))
+                {
+                    builder.AppendLine();
+                }
+            }
+        }
+
+#if NV_LOG || DEBUG
+        else
+        {
+            string attrName = nameof(PropertyArrayAttribute);
+            string message = $"Array must be marked with {attrName}.";
+#if NV_LOG
+            Console.WriteLine(message);
+#endif
+#if DEBUG
+            throw new SerializationException(message);
+#endif
+        }
+#endif
+
+        // Terminate the array.
+        builder.Append('\t', depth + 1);
+        builder.AppendLine("}");
     }
 
     private static bool WritePropertyList(
@@ -161,7 +206,6 @@ public static class PropertySerializer
         {
             throw new ArgumentOutOfRangeException(nameof(depth));
         }
-
 
         Type type = target.GetType();
         PropertyListMetadata? classInfo = PropertyListMetadataCache.CreateOrGetFor(type);

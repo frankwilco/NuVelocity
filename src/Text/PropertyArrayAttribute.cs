@@ -2,6 +2,7 @@
 
 public class PropertyArrayAttribute : PropertyAttribute
 {
+    public const string ClassName = "Array";
     public const string DefaultItemKey = "Array Item";
     public const string DefaultItemCountKey = "Array Count";
     public const string NamedItemCountKey = "Item Count";
