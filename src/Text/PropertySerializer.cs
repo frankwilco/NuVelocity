@@ -186,6 +186,8 @@ public static class PropertySerializer
                 continue;
             }
 
+            PropertyInfo prop = classInfo.PropertyInfoCache[propAttr.Name];
+
             bool hasExclusionMatch = (flags & propAttr.ExcludeFlags) > 0;
             if (hasExclusionMatch || propAttr.IsTransient)
             {
@@ -212,7 +214,6 @@ public static class PropertySerializer
                 continue;
             }
 
-            PropertyInfo prop = classInfo.PropertyInfoCache[propAttr.Name];
             if (propAttr.IsDynamic)
             {
                 if (WriteProperty(
