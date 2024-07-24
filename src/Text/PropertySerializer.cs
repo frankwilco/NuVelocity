@@ -7,6 +7,15 @@ public static class PropertySerializer
 {
     private const string kDynamicPropertiesKey = "Dynamic Properties";
 
+    private static readonly Type ListType =
+        typeof(List<>);
+    private static readonly Type NullableType =
+        typeof(Nullable<>);
+    private static readonly Type PropertyRootAttributeType =
+        typeof(PropertyRootAttribute);
+    private static readonly Type PropertyAttributeType =
+        typeof(PropertyAttribute);
+
     private static bool WriteProperty(
         PropertyInfo prop,
         PropertyAttribute propAttr,
@@ -47,7 +56,7 @@ public static class PropertySerializer
         {
             propertyType = underlyingType;
         }
-        if (propertyType.IsDefined(typeof(PropertyRootAttribute)))
+        if (propertyType.IsDefined(PropertyRootAttributeType))
         {
             if (!WritePropertyList(builder, propValue, depth + 1, source))
             {
@@ -69,7 +78,7 @@ public static class PropertySerializer
                 throw new InvalidDataException();
             MemberInfo memberInfo = propertyType.GetMember(memberName)[0];
             // Write the enum value's friendly name.
-            if (memberInfo.IsDefined(typeof(PropertyAttribute)))
+            if (memberInfo.IsDefined(PropertyAttributeType))
             {
                 PropertyAttribute? enumAttribute = memberInfo
                     .GetCustomAttribute<PropertyAttribute>()
@@ -403,7 +412,7 @@ public static class PropertySerializer
                 Type? propType = propInfo.PropertyType;
                 // Get the underlying type if it's nullable.
                 if (propType.IsGenericType &&
-                    propType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                    propType.GetGenericTypeDefinition() == NullableType)
                 {
                     propType = Nullable.GetUnderlyingType(propType);
                 }
@@ -413,14 +422,13 @@ public static class PropertySerializer
                 }
 
                 object? propValue = null;
-                Type listType = typeof(List<>);
                 if (propType.IsGenericType &&
-                    propType.GetGenericTypeDefinition() == listType)
+                    propType.GetGenericTypeDefinition() == ListType)
                 {
                     Type? elementType = propType.GetGenericArguments()
                         .FirstOrDefault() ?? throw new InvalidDataException();
                     Array array = ParsePropertyArrayValue(reader, elementType);
-                    Type concreteType = listType.MakeGenericType(elementType);
+                    Type concreteType = ListType.MakeGenericType(elementType);
                     propValue = Activator.CreateInstance(concreteType, array);
                 }
                 else if (propType.IsArray)
