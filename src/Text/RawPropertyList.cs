@@ -4,7 +4,7 @@ namespace NuVelocity.Text;
 
 public class RawPropertyList : RawProperty
 {
-    public RawPropertyList(RawPropertyList parent = null,
+    public RawPropertyList(RawPropertyList? parent = null,
                         string name = kDefaultName,
                         string description = kDefaultDescription)
         : base(name, description)
@@ -14,7 +14,7 @@ public class RawPropertyList : RawProperty
         Value = Properties;
     }
 
-    public RawPropertyList Parent { get; protected set; }
+    public RawPropertyList? Parent { get; protected set; }
     public List<RawProperty> Properties { get; protected set; }
 
     public static List<RawPropertyList> FromStream(Stream stream)
@@ -25,7 +25,7 @@ public class RawPropertyList : RawProperty
         RawPropertyList rootList = new();
         string className = "";
         RawPropertyList currentList = rootList;
-        RawProperty lastProperty = null;
+        RawProperty? lastProperty = null;
 
         while (!reader.EndOfStream)
         {
@@ -42,11 +42,13 @@ public class RawPropertyList : RawProperty
 
             if (line == "{")
             {
-                if (lastProperty != null)
+                if (lastProperty != null && lastProperty.Value != null)
                 {
                     currentList.Properties.Remove(lastProperty);
-                    var childList = new RawPropertyList(currentList,
-                        lastProperty.Name, lastProperty.Value as string);
+                    RawPropertyList childList = new(
+                        currentList,
+                        lastProperty.Name,
+                        lastProperty.Value.ToString() ?? "");
                     currentList.Properties.Add(childList);
                     currentList = childList;
                     lastProperty = childList;
@@ -93,7 +95,7 @@ public class RawPropertyList : RawProperty
 
     public static List<RawPropertyList> FromBytes(byte[] bytes)
     {
-        using MemoryStream stream = new MemoryStream(bytes);
+        using MemoryStream stream = new(bytes);
         List<RawPropertyList> rootList = FromStream(stream);
         return rootList;
     }

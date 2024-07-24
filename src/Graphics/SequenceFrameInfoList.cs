@@ -12,12 +12,12 @@ public class SequenceFrameInfoList
     [Property("Flags")]
     public SequenceFlags Flags { get; set; }
 
-    [Property("BlitType")]
-    [PropertyExclude(PropertySerializationFlags.HasTextBlitType)]
+    [Property("BlitType",
+        excludeFlags: PropertySerializationFlags.HasTextBlitType)]
     public int BlitType { get; set; }
 
-    [Property("Blit Type")]
-    [PropertyInclude(PropertySerializationFlags.HasTextBlitType)]
+    [Property("Blit Type",
+        includeFlags: PropertySerializationFlags.HasTextBlitType)]
     public BlitType TextBlitType
     {
         get { return (BlitType)BlitType; }
@@ -26,6 +26,11 @@ public class SequenceFrameInfoList
 
     [Property("FPS")]
     public float FramesPerSecond { get; set; }
+
+    public SequenceFrameInfoList()
+    {
+        Values = Array.Empty<FrameInfo>();
+    }
 
     public void CopyTo(Sequence sequence, BlitTypeRevision revision)
     {

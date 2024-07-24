@@ -12,24 +12,24 @@ public class Sequence
 
     public PropertySerializationFlags Flags { get; set; }
 
-    [Property("Comment")]
-    [PropertyDynamic]
+    [Property("Comment",
+        isDynamic: true)]
     public string? Comment { get; set; }
 
     // TN: Exclusive to Lionheart.
-    [Property("Menu Position")]
-    [PropertyDynamic]
+    [Property("Menu Position",
+        isDynamic: true)]
     public Coordinates? MenuPosition { get; set; }
 
     // TN: Exclusive to Ricochet Lost Worlds and Ricochet Infinity.
-    [Property("Sequence of Coordinates")]
-    [PropertyDynamic]
+    [Property("Sequence of Coordinates",
+        isDynamic: true)]
     public SequenceOfCoordinates? SequenceOfCoordinates { get; set; }
 
     // TN: Exclusive to Build In Time and Costume Chaos.
-    [Property("Y-Sort")]
-    [PropertyInclude(PropertySerializationFlags.HasYSort)]
-    [PropertyDynamic]
+    [Property("Y-Sort",
+        isDynamic: true,
+        includeFlags: PropertySerializationFlags.HasYSort)]
     public int? YSort
     {
         get { return _ySort; }
@@ -41,9 +41,9 @@ public class Sequence
     }
 
     // TN: Exclusive to Build In Time.
-    [Property("Poke Audio")]
-    [PropertyInclude(PropertySerializationFlags.HasPokeAudio)]
-    [PropertyDynamic]
+    [Property("Poke Audio",
+        isDynamic: true,
+        includeFlags: PropertySerializationFlags.HasPokeAudio)]
     public string? PokeAudio
     {
         get { return _pokeAudio; }
@@ -55,9 +55,9 @@ public class Sequence
     }
 
     // TN: Exclusive to Costume Chaos.
-    [Property("Editor Only")]
-    [PropertyDynamic]
-    [PropertyInclude(PropertySerializationFlags.HasEditorOnly)]
+    [Property("Editor Only",
+        isDynamic: true,
+        includeFlags: PropertySerializationFlags.HasEditorOnly)]
     public bool? EditorOnly
     {
         get { return _editorOnly; }
@@ -68,39 +68,48 @@ public class Sequence
         }
     }
 
-    [Property("Frames Per Second", defaultValue: 15)]
-    [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
+    [Property("Frames Per Second",
+        defaultValue: 15.0f,
+        excludeFlags: PropertySerializationFlags.HasSimpleFormat)]
     public float? FramesPerSecond { get; set; }
 
-    [Property("Blit Type", defaultValue: Graphics.BlitType.TransparentMask)]
+    [Property("Blit Type",
+        defaultValue: Graphics.BlitType.TransparentMask)]
     public BlitType? BlitType { get; set; }
 
-    [Property("X Offset", defaultValue: 0)]
+    [Property("X Offset",
+        defaultValue: 0)]
     public int? XOffset { get; set; }
 
-    [Property("Y Offset", defaultValue: 0)]
+    [Property("Y Offset",
+        defaultValue: 0)]
     public int? YOffset { get; set; }
 
-    [Property("Use Every", defaultValue: 1)]
-    [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
-                     PropertySerializationFlags.HasSimpleFormat)]
+    [Property("Use Every",
+        defaultValue: 1,
+        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality |
+            PropertySerializationFlags.HasSimpleFormat)]
     public int? UseEvery { get; set; }
 
-    [Property("Always Include Last Frame", defaultValue: false)]
-    [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
-                     PropertySerializationFlags.HasSimpleFormat)]
+    [Property("Always Include Last Frame",
+        defaultValue: false,
+        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality |
+            PropertySerializationFlags.HasSimpleFormat)]
     public bool? AlwaysIncludeLastFrame { get; set; }
 
-    [Property("Center Hot Spot", defaultValue: true)]
+    [Property("Center Hot Spot",
+        defaultValue: true)]
     public bool? CenterHotSpot { get; set; }
 
-    [Property("Blended With Black", defaultValue: true)]
-    [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
-                     PropertySerializationFlags.HasSimpleFormat)]
+    [Property("Blended With Black",
+        defaultValue: true,
+        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality |
+            PropertySerializationFlags.HasSimpleFormat)]
     public bool? BlendedWithBlack { get; set; }
 
-    [Property("Crop Color 0", defaultValue: true)]
-    [PropertyInclude(PropertySerializationFlags.HasFixedCropColor0Name)]
+    [Property("Crop Color 0",
+        defaultValue: true,
+        includeFlags: PropertySerializationFlags.HasFixedCropColor0Name)]
     internal bool? CropColor0
     {
         get { return CropAlphaChannel; }
@@ -114,8 +123,9 @@ public class Sequence
         }
     }
 
-    [Property("Crop Clor 0", defaultValue: true)]
-    [PropertyExclude(PropertySerializationFlags.HasFixedCropColor0Name)]
+    [Property("Crop Clor 0",
+        defaultValue: true,
+        excludeFlags: PropertySerializationFlags.HasFixedCropColor0Name)]
     internal bool? CropClor0
     {
         get => CropAlphaChannel;
@@ -124,21 +134,25 @@ public class Sequence
 
     public bool? CropAlphaChannel { get; set; }
 
-    [Property("Use 8 Bit Alpha", defaultValue: false)]
+    [Property("Use 8 Bit Alpha",
+        defaultValue: false)]
     public bool? Use8BitAlpha { get; set; }
 
-    [Property("Run Length Encode", defaultValue: true)]
-    [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
-                     PropertySerializationFlags.HasSimpleFormat)]
+    [Property("Run Length Encode",
+        defaultValue: true,
+        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality |
+            PropertySerializationFlags.HasSimpleFormat)]
     public bool? IsRle { get; set; }
 
-    [Property("Do Dither", defaultValue: true)]
-    [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
+    [Property("Do Dither",
+        defaultValue: true,
+        excludeFlags: PropertySerializationFlags.HasSimpleFormat)]
     public bool? DoDither { get; set; }
 
     // TN: Present in Star Trek Away Team sequence files.
-    [Property("Dither", defaultValue: true)]
-    [PropertyInclude(PropertySerializationFlags.HasSimpleFormat)]
+    [Property("Dither",
+        defaultValue: true,
+        includeFlags: PropertySerializationFlags.HasSimpleFormat)]
     internal bool? Dither
     {
         get { return DoDither; }
@@ -149,9 +163,10 @@ public class Sequence
         }
     }
 
-    [Property("Loss Less", defaultValue: false)]
-    [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
-    [PropertyExclude(PropertySerializationFlags.HasSimpleFormat)]
+    [Property("Loss Less",
+        defaultValue: false,
+        includeFlags: PropertySerializationFlags.HasLegacyImageQuality,
+        excludeFlags: PropertySerializationFlags.HasSimpleFormat)]
     internal bool? LossLess1
     {
         get { return IsLossless; }
@@ -162,9 +177,10 @@ public class Sequence
         }
     }
 
-    [Property("Loss Less 2", defaultValue: false)]
-    [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
-                     PropertySerializationFlags.HasSimpleFormat)]
+    [Property("Loss Less 2",
+        defaultValue: false,
+        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality |
+            PropertySerializationFlags.HasSimpleFormat)]
     internal bool? LossLess2
     {
         get => IsLossless;
@@ -173,8 +189,9 @@ public class Sequence
 
     public bool? IsLossless { get; set; }
 
-    [Property("Quality", defaultValue: 65)]
-    [PropertyInclude(PropertySerializationFlags.HasLegacyImageQuality)]
+    [Property("Quality",
+        defaultValue: 65,
+        includeFlags: PropertySerializationFlags.HasLegacyImageQuality)]
     internal int? Quality1
     {
         get { return JpegQuality; }
@@ -185,27 +202,30 @@ public class Sequence
         }
     }
 
-    [Property("Quality2", defaultValue: 65)]
-    [PropertyExclude]
+    [Property("Quality2",
+        defaultValue: 65,
+        isTransient: true)]
     internal int? Quality2
     {
         get => JpegQuality;
         set => JpegQuality = value;
     }
 
-    [Property("JPEG Quality", defaultValue: 80)]
-    [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality |
-                     PropertySerializationFlags.HasJpegQuality2 |
-                     PropertySerializationFlags.HasSimpleFormat)]
+    [Property("JPEG Quality",
+        defaultValue: 80,
+        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality |
+            PropertySerializationFlags.HasJpegQuality2 |
+            PropertySerializationFlags.HasSimpleFormat)]
     internal int? JpegQuality1
     {
         get => JpegQuality;
         set => JpegQuality = value;
     }
 
-    [Property("JPEG Quality 2", defaultValue: 80)]
-    [PropertyExclude(PropertySerializationFlags.HasLegacyImageQuality)]
-    [PropertyInclude(PropertySerializationFlags.HasJpegQuality2)]
+    [Property("JPEG Quality 2",
+        defaultValue: 80,
+        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality,
+        includeFlags: PropertySerializationFlags.HasJpegQuality2)]
     internal int? JpegQuality2
     {
         get { return JpegQuality; }
@@ -221,8 +241,8 @@ public class Sequence
 
     public int? JpegQuality { get; set; }
 
-    [Property("DDS")]
-    [PropertyInclude(PropertySerializationFlags.HasDdsSupport)]
+    [Property("DDS",
+        includeFlags: PropertySerializationFlags.HasDdsSupport)]
     public bool? IsDds
     {
         get { return _isDds; }
@@ -236,8 +256,8 @@ public class Sequence
         }
     }
 
-    [Property("Needs Buffer")]
-    [PropertyInclude(PropertySerializationFlags.HasDdsSupport)]
+    [Property("Needs Buffer",
+        includeFlags: PropertySerializationFlags.HasDdsSupport)]
     public bool? NeedsBuffer
     {
         get { return _needsBuffer; }
@@ -253,9 +273,10 @@ public class Sequence
 
     // TN: Present in Swarm Gold, Ricochet Infinity HD, Big Kahuna Reef 3,
     // Build In Time, and Costume Chaos.
-    [Property("Mipmap For Native Version", defaultValue: true)]
-    [PropertyInclude(PropertySerializationFlags.HasMipmapSupport |
-                     PropertySerializationFlags.HasDdsSupport)]
+    [Property("Mipmap For Native Version",
+        defaultValue: true,
+        includeFlags: PropertySerializationFlags.HasMipmapSupport |
+            PropertySerializationFlags.HasDdsSupport)]
     public bool? MipmapForNativeVersion
     {
         get { return _mipmapForNativeVersion; }

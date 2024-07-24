@@ -11,24 +11,26 @@ public static class PropertySerializer
         BindingFlags.Instance |
         BindingFlags.Static;
 
-    private static bool SerializeProperty(
+    private static bool WriteProperty(
         PropertyInfo prop,
+        PropertyAttribute propAttr,
         StringBuilder builder,
         object target,
         int depth,
         PropertySerializationFlags source,
         bool ignoreNull = false)
     {
-        var propAttr = prop.GetCustomAttribute<PropertyAttribute>();
         object? propValue = prop.GetValue(target);
         // If we're supposed to ignore empty properties, return early.
         if (ignoreNull && propValue == null)
         {
             return false;
         }
+
         // Write property name.
         builder.Append('\t', depth + 1);
         builder.Append($"{propAttr.Name}=");
+
         // Write property value, if available.
         if (propValue == null)
         {
@@ -40,6 +42,7 @@ public static class PropertySerializer
             }
             propValue = propAttr.DefaultValue;
         }
+
         // 1: Write the value's properties if it's marked with the
         // property root attribute.
         Type propertyType = prop.PropertyType;
@@ -50,27 +53,31 @@ public static class PropertySerializer
         }
         if (propertyType.IsDefined(typeof(PropertyRootAttribute)))
         {
-            if (!Serialize(builder, propValue, depth + 1, source))
+            if (!WritePropertyList(builder, propValue, depth + 1, source))
             {
                 builder.AppendLine();
             }
         }
+
         // 2: Write bool values as 0 (false) or 1 (true).
         else if (propertyType == typeof(bool))
         {
             bool boolValue = (bool)propValue;
             builder.AppendLine(boolValue ? "1" : "0");
         }
+
         // 3: Write enum values with their friendly name or as an int.
         else if (propertyType.IsEnum)
         {
-            MemberInfo memberInfo = propertyType
-                .GetMember(propValue.ToString())[0];
+            string? memberName = propValue.ToString() ??
+                throw new InvalidDataException();
+            MemberInfo memberInfo = propertyType.GetMember(memberName)[0];
             // Write the enum value's friendly name.
             if (memberInfo.IsDefined(typeof(PropertyAttribute)))
             {
-                PropertyAttribute enumAttribute = memberInfo
-                    .GetCustomAttribute<PropertyAttribute>();
+                PropertyAttribute? enumAttribute = memberInfo
+                    .GetCustomAttribute<PropertyAttribute>()
+                    ?? throw new InvalidDataException();
                 builder.AppendLine(enumAttribute.Name);
                 return true;
             }
@@ -78,6 +85,7 @@ public static class PropertySerializer
             string enumValue = ((int)propValue).ToString();
             builder.AppendLine(enumValue);
         }
+
         // 4: Write array values.
         else if (propertyType.IsArray)
         {
@@ -88,11 +96,12 @@ public static class PropertySerializer
             builder.AppendLine("{");
             // Check first if array elements have a property root attribute.
             // Otherwise, we can't serialize this object without it.
-            Type elemType = propertyType.GetElementType();
-            if (elemType.IsDefined(typeof(PropertyRootAttribute)))
+            Type? elemType = propertyType.GetElementType()
+                ?? throw new InvalidDataException();
+            PropertyRootAttribute? elemAttr = elemType
+                .GetCustomAttribute<PropertyRootAttribute>();
+            if (elemAttr != null)
             {
-                var elemAttr = elemType
-                    .GetCustomAttribute<PropertyRootAttribute>();
                 // Write array element count.
                 builder.Append('\t', depth + 2);
                 builder.AppendLine($"Item Count={arrayValue.Length}");
@@ -103,7 +112,7 @@ public static class PropertySerializer
                     builder.Append($"{elemAttr.FriendlyName}=");
                     // Null elements are still represented. They
                     // serialize as empty (CObject=).
-                    if (!Serialize(builder, item, depth + 3, source))
+                    if (!WritePropertyList(builder, item, depth + 3, source))
                     {
                         builder.AppendLine();
                     }
@@ -113,24 +122,27 @@ public static class PropertySerializer
             builder.Append('\t', depth + 1);
             builder.AppendLine("}");
         }
+
         // 5: Write the serialized value from the object.
         else if (propValue is IPropertySerializable propSerializable)
         {
             builder.AppendLine(propSerializable.Serialize());
         }
+
         // 6: Write the string representation (fallback).
         else
         {
             builder.AppendLine(propValue.ToString());
         }
+
         return true;
     }
 
-    private static bool Serialize(
+    private static bool WritePropertyList(
         StringBuilder builder,
         object target,
         int depth,
-        PropertySerializationFlags source)
+        PropertySerializationFlags flags)
     {
         if (builder is null)
         {
@@ -147,12 +159,13 @@ public static class PropertySerializer
 
         Type type = target.GetType();
         // Return early if object does not have a property root attribute.
-        if (!type.IsDefined(typeof(PropertyRootAttribute)))
+        PropertyRootAttribute? rootAttr =
+            type.GetCustomAttribute<PropertyRootAttribute>();
+        if (rootAttr == null)
         {
             return false;
         }
 
-        var rootAttr = type.GetCustomAttribute<PropertyRootAttribute>();
         // Write the value directly if this is a single value property.
         if (rootAttr.IsSingleValue)
         {
@@ -166,7 +179,8 @@ public static class PropertySerializer
             }
             return true;
         }
-        // Write the object class name.
+
+        // Write the class name and start the property list.
         builder.AppendLine(rootAttr.ClassName);
         builder.Append('\t', depth);
         builder.AppendLine("{");
@@ -178,53 +192,52 @@ public static class PropertySerializer
         // Iterate through all properties.
         foreach (var prop in type.GetProperties(kSearchFlags))
         {
-            // Ignore properties without the property attribute
-            // or if the property is marked as dynamic.
-            if (!prop.IsDefined(typeof(PropertyAttribute)))
+            PropertyAttribute? propAttr = prop.GetCustomAttribute<PropertyAttribute>();
+            // Ignore properties without the property attribute.
+            if (propAttr == null)
             {
                 continue;
             }
 
-            var exclusionAttr = prop
-                .GetCustomAttribute<PropertyExcludeAttribute>();
-            bool hasExclusionMatch = ((source & exclusionAttr?.Flags) > 0) ||
-                exclusionAttr?.Flags == PropertySerializationFlags.None;
-            if (exclusionAttr != null && hasExclusionMatch)
+            bool hasExclusionMatch = (flags & propAttr.ExcludeFlags) > 0;
+            if (hasExclusionMatch || propAttr.IsTransient)
             {
 #if NV_LOG
                 Console.WriteLine(
                     $"Skipping property {prop.Name} " +
-                    $"[curr: {source}, " +
-                    $"exclude starting: {exclusionAttr.Flags}]");
-#endif
-                continue;
-            }
-            var inclusionAttr = prop
-                .GetCustomAttribute<PropertyIncludeAttribute>();
-            bool hasInclusionMatch = (source & inclusionAttr?.Flags) > 0;
-            if (inclusionAttr != null && !hasInclusionMatch)
-            {
-#if NV_LOG
-                Console.WriteLine(
-                    $"Skipping property {prop.Name} " +
-                    $"[curr: {source}, " +
-                    $"include starting: {inclusionAttr.Flags}]");
+                    $"[curr: {flags}, " +
+                    $"exclude flags: {propAttr.ExcludeFlags}]");
 #endif
                 continue;
             }
 
-            if (prop.IsDefined(typeof(PropertyDynamicAttribute)))
+            bool hasInclusionMatch =
+                propAttr.IncludeFlags == PropertySerializationFlags.None ||
+                ((flags & propAttr.IncludeFlags) > 0);
+            if (!hasInclusionMatch)
             {
-                if (SerializeProperty(
-                    prop, builderDynamic, target, depth + 1, source, true))
+#if NV_LOG
+                Console.WriteLine(
+                    $"Skipping property {prop.Name} " +
+                    $"[curr: {flags}, " +
+                    $"include starting: {propAttr.IncludeFlags}]");
+#endif
+                continue;
+            }
+
+            if (propAttr.IsDynamic)
+            {
+                if (WriteProperty(
+                    prop, propAttr, builderDynamic, target, depth + 1, flags, true))
                 {
                     dynamicCount++;
                 }
                 continue;
             }
 
-            bool isCompact = (source & PropertySerializationFlags.Compact) == PropertySerializationFlags.Compact;
-            SerializeProperty(prop, builder, target, depth, source, isCompact);
+            bool isCompact = (flags & PropertySerializationFlags.Compact) == PropertySerializationFlags.Compact;
+            WriteProperty(
+                prop, propAttr, builder, target, depth, flags, isCompact);
         }
 
         if (dynamicCount > 0)
@@ -239,7 +252,7 @@ public static class PropertySerializer
             builder.Insert(dynamicIndex, "\t", depth + 1);
         }
 
-        // Terminate the object.
+        // Terminate the property list.
         builder.Append('\t', depth);
         builder.AppendLine("}");
 
@@ -261,7 +274,7 @@ public static class PropertySerializer
         }
 
         StringBuilder builder = new();
-        bool result = Serialize(builder, target, 0, sourceFilter);
+        bool result = WritePropertyList(builder, target, 0, sourceFilter);
         writer.Write(builder.ToString());
         return result;
     }
@@ -300,7 +313,8 @@ public static class PropertySerializer
         }
 
         Type type = target.GetType();
-        var classAttr = type.GetCustomAttribute<PropertyRootAttribute>();
+        PropertyRootAttribute? classAttr =
+            type.GetCustomAttribute<PropertyRootAttribute>();
         if (classAttr == null)
         {
             return false;
@@ -336,13 +350,13 @@ public static class PropertySerializer
         bool inArray = false;
         bool arrayLengthKnown = false;
         int arrayIndex = -1;
-        Array arrayPropValue = null;
-        PropertyInfo arrayPropInfo = null;
-        Type arrayElemType = null;
+        Array? arrayPropValue = null;
+        PropertyInfo? arrayPropInfo = null;
+        Type? arrayElemType = null;
 
         while (!reader.EndOfStream)
         {
-            string line = reader.ReadLine();
+            string? line = reader.ReadLine();
             if (line == null)
             {
                 break;
@@ -371,22 +385,25 @@ public static class PropertySerializer
                 }
                 checkForUnknownBlock = false;
             }
+
             // 2: Skip properties inside unknown object.
             else if (skipAhead && line != "}")
             {
                 continue;
             }
+
             // 3: Start of property list.
             else if (line == "{")
             {
                 continue;
             }
+
             // 4: End of property list.
             else if (line == "}")
             {
                 if (inArray)
                 {
-                    arrayPropInfo.SetValue(target, arrayPropValue);
+                    arrayPropInfo!.SetValue(target, arrayPropValue);
                     inArray = false;
                     arrayLengthKnown = false;
                     arrayPropValue = null;
@@ -400,6 +417,7 @@ public static class PropertySerializer
                 skipAhead = false;
                 continue;
             }
+
             // 5: Property information.
             else if (line.Contains('='))
             {
@@ -423,7 +441,7 @@ public static class PropertySerializer
 #endif
                         }
                         arrayPropValue = Array.CreateInstance(
-                            arrayElemType, arrayLength);
+                            arrayElemType!, arrayLength);
                         arrayLengthKnown = true;
                         continue;
                     }
@@ -432,15 +450,15 @@ public static class PropertySerializer
                     {
                         // XXX: Assume single-element array.
                         arrayPropValue = Array.CreateInstance(
-                            arrayElemType, 1);
+                            arrayElemType!, 1);
                         arrayLengthKnown = true;
                     }
 
-                    object arrayElem = null;
+                    object? arrayElem = null;
                     if (!isValueEmpty)
                     {
-                        arrayElem = Activator.CreateInstance(arrayElemType);
-                        Deserialize(reader, arrayElem, true, pair[1]);
+                        arrayElem = Activator.CreateInstance(arrayElemType!);
+                        Deserialize(reader, arrayElem!, true, pair[1]);
                     }
 
                     arrayPropValue.SetValue(arrayElem, arrayIndex);
@@ -454,7 +472,7 @@ public static class PropertySerializer
                 }
 
                 // Look for the property's info associated with the class.
-                properties.TryGetValue(pair[0], out PropertyInfo propInfo);
+                properties.TryGetValue(pair[0], out PropertyInfo? propInfo);
                 if (propInfo == null)
                 {
 #if NV_LOG
@@ -465,15 +483,19 @@ public static class PropertySerializer
                 }
 
                 // TODO: special case for ascii-encoded binary
-                Type propType = propInfo.PropertyType;
+                Type? propType = propInfo.PropertyType;
                 // Get the underlying type if it's nullable.
                 if (propType.IsGenericType &&
                     propType.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
                     propType = Nullable.GetUnderlyingType(propType);
                 }
+                if (propType == null)
+                {
+                    throw new InvalidDataException();
+                }
                 TypeCode typeCode = Type.GetTypeCode(propType);
-                object propValue = null;
+                object? propValue = null;
                 switch (typeCode)
                 {
                     case TypeCode.Object:
@@ -486,7 +508,7 @@ public static class PropertySerializer
                             continue;
                         }
                         propValue = Activator.CreateInstance(propType);
-                        Deserialize(reader, propValue, true, pair[1]);
+                        Deserialize(reader, propValue!, true, pair[1]);
                         break;
                     case TypeCode.Boolean:
                         propValue = pair[1] == "1";
@@ -527,11 +549,12 @@ public static class PropertySerializer
                         {
                             foreach (var enumMember in propType.GetMembers())
                             {
-                                if (!enumMember.IsDefined(typeof(PropertyAttribute)))
+                                PropertyAttribute? propAttr =
+                                    enumMember.GetCustomAttribute<PropertyAttribute>(true);
+                                if (propAttr == null)
                                 {
                                     continue;
                                 }
-                                PropertyAttribute propAttr = enumMember.GetCustomAttribute<PropertyAttribute>(true);
                                 if (propAttr.Name == pair[1])
                                 {
                                     propValue = Enum.Parse(propType, enumMember.Name);
@@ -591,10 +614,11 @@ public static class PropertySerializer
                         propValue = pair[1];
                         break;
                     default:
-                        break;
+                        throw new NotImplementedException();
                 }
                 propInfo.SetValue(target, propValue);
             }
+
             // 6: Name of property list.
             else if (line == classAttr.ClassName)
             {
@@ -606,6 +630,7 @@ public static class PropertySerializer
                 }
                 classFound = true;
             }
+
             // 7: Name of property list (mismatch).
             else
             {
