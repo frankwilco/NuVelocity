@@ -291,7 +291,7 @@ public static class PropertySerializer
         return Serialize(writer, target, sourceFilter);
     }
 
-    public static bool Deserialize(
+    private static bool Deserialize(
         StreamReader reader,
         object target,
         bool isChild = false,
@@ -340,14 +340,6 @@ public static class PropertySerializer
         bool checkForUnknownBlock = false;
         bool classFound = false;
 
-        // FIXME: This probably wouldn't work for nested arrays.
-        bool inArray = false;
-        bool arrayLengthKnown = false;
-        int arrayIndex = -1;
-        Array? arrayPropValue = null;
-        PropertyInfo? arrayPropInfo = null;
-        Type? arrayElemType = null;
-
         while (!reader.EndOfStream)
         {
             string? line = reader.ReadLine();
@@ -395,15 +387,6 @@ public static class PropertySerializer
             // 4: End of property list.
             else if (line == "}")
             {
-                if (inArray)
-                {
-                    arrayPropInfo!.SetValue(target, arrayPropValue);
-                    inArray = false;
-                    arrayLengthKnown = false;
-                    arrayPropValue = null;
-                    arrayPropInfo = null;
-                    arrayElemType = null;
-                }
                 if (isChild)
                 {
                     break;
@@ -415,58 +398,18 @@ public static class PropertySerializer
             // 5: Property information.
             else if (line.Contains('='))
             {
-                string[] pair = line.Split('=');
-                bool isValueEmpty = string.IsNullOrWhiteSpace(pair[1]);
+                int equalIndex = line.IndexOf('=');
+                KeyValuePair<string, string> pair = new(
+                    line[..equalIndex],
+                    line[(equalIndex + 1)..]);
 
-                if (inArray)
-                {
-                    if (pair[0] == "Item Count")
-                    {
-                        if (arrayLengthKnown)
-                        {
-#if NV_LOG
-                            Console.WriteLine("Duplicate array length property.");
-#endif
-                        }
-                        if (!int.TryParse(pair[1], out int arrayLength))
-                        {
-#if NV_LOG
-                            Console.WriteLine("Invalid array length.");
-#endif
-                        }
-                        arrayPropValue = Array.CreateInstance(
-                            arrayElemType!, arrayLength);
-                        arrayLengthKnown = true;
-                        continue;
-                    }
-
-                    if (arrayPropValue == null)
-                    {
-                        // XXX: Assume single-element array.
-                        arrayPropValue = Array.CreateInstance(
-                            arrayElemType!, 1);
-                        arrayLengthKnown = true;
-                    }
-
-                    object? arrayElem = null;
-                    if (!isValueEmpty)
-                    {
-                        arrayElem = Activator.CreateInstance(arrayElemType!);
-                        Deserialize(reader, arrayElem!, true, pair[1]);
-                    }
-
-                    arrayPropValue.SetValue(arrayElem, arrayIndex);
-                    arrayIndex++;
-                    continue;
-                }
-
-                if (pair[0] == kDynamicPropertiesKey)
+                if (pair.Key == kDynamicPropertiesKey)
                 {
                     continue;
                 }
 
                 // Look for the property's info associated with the class.
-                properties.TryGetValue(pair[0], out PropertyInfo? propInfo);
+                properties.TryGetValue(pair.Key, out PropertyInfo? propInfo);
                 if (propInfo == null)
                 {
 #if NV_LOG
@@ -476,7 +419,6 @@ public static class PropertySerializer
                     continue;
                 }
 
-                // TODO: special case for ascii-encoded binary
                 Type? propType = propInfo.PropertyType;
                 // Get the underlying type if it's nullable.
                 if (propType.IsGenericType &&
@@ -488,15 +430,8 @@ public static class PropertySerializer
                 {
                     throw new InvalidDataException();
                 }
-                if (propType.IsArray)
-                {
-                    arrayPropInfo = propInfo;
-                    arrayElemType = propType.GetElementType();
-                    arrayIndex = 0;
-                    inArray = true;
-                    continue;
-                }
-                object? propValue = ParsePropertyValue(reader, pair[1], propType);
+                object? propValue = null;
+                propValue = ParsePropertyValue(reader, pair.Value, propType);
                 propInfo.SetValue(target, propValue);
             }
 
@@ -525,6 +460,101 @@ public static class PropertySerializer
         return classFound;
     }
 
+    private static Array ParsePropertyArrayValue(StreamReader reader, Type elementType)
+    {
+        int ignoredElements = 0;
+        int index = 0;
+        bool lengthKnown = false;
+        Array array = Array.CreateInstance(elementType, 0);
+
+        while (!reader.EndOfStream)
+        {
+            string? line = reader.ReadLine()?.Trim();
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            // 1: Start of array list.
+            else if (line == "{")
+            {
+                continue;
+            }
+
+            // 2: End of array list.
+            else if (line == "}")
+            {
+                break;
+            }
+
+            // 3: Array element.
+            else if (line.Contains('='))
+            {
+                int equalIndex = line.IndexOf('=');
+                KeyValuePair<string, string> pair = new(
+                    line[..equalIndex],
+                    line[(equalIndex + 1)..]);
+
+                if (pair.Key == PropertyArrayAttribute.DefaultItemCountKey ||
+                    pair.Key == PropertyArrayAttribute.NamedItemCountKey)
+                {
+                    if (lengthKnown)
+                    {
+#if NV_LOG
+                        Console.WriteLine("Duplicate array length property.");
+#endif
+                    }
+                    if (!int.TryParse(pair.Value, out int arrayLength))
+                    {
+#if NV_LOG
+                        Console.WriteLine("Invalid array length.");
+#endif
+                    }
+                    // Create a new array instance only if it is not empty.
+                    if (arrayLength > 0)
+                    {
+                        array = Array.CreateInstance(
+                            elementType, arrayLength);
+                    }
+                    lengthKnown = true;
+                    continue;
+                }
+
+                object? element = null;
+                if (!string.IsNullOrWhiteSpace(pair.Value))
+                {
+                    element = Activator.CreateInstance(elementType);
+                    Deserialize(reader, element!, true, pair.Value);
+                }
+
+                if (lengthKnown)
+                {
+                    array.SetValue(element, index);
+                }
+                else
+                {
+                    ignoredElements++;
+                }
+
+                index++;
+                continue;
+            }
+        }
+
+#if NV_LOG
+        if (!lengthKnown)
+        {
+            Console.WriteLine("Created an empty array.");
+        }
+        if (ignoredElements > 0)
+        {
+            Console.WriteLine($"{ignoredElements} element(s) were ignored");
+        }
+#endif
+
+        return array;
+    }
+
     private static object? ParsePropertyValue(StreamReader reader, string rawPropValue, Type propType)
     {
         object? propValue = null;
@@ -533,6 +563,13 @@ public static class PropertySerializer
         switch (typeCode)
         {
             case TypeCode.Object:
+                if (propType.IsArray)
+                {
+                    Type? elementType = propType.GetElementType()
+                        ?? throw new InvalidDataException();
+                    propValue = ParsePropertyArrayValue(reader, elementType);
+                    break;
+                }
                 propValue = Activator.CreateInstance(propType);
                 Deserialize(reader, propValue!, true, rawPropValue);
                 break;
