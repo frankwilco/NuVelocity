@@ -564,7 +564,10 @@ public static class PropertySerializer
         return array;
     }
 
-    private static object? ParsePropertyValue(StreamReader reader, string rawPropValue, Type propType)
+    private static object? ParsePropertyValue(
+        StreamReader reader,
+        Type propType,
+        string propValueText)
     {
         object? propValue = null;
 
@@ -573,37 +576,37 @@ public static class PropertySerializer
         {
             case TypeCode.Object:
                 propValue = Activator.CreateInstance(propType);
-                Deserialize(reader, propValue!, true, rawPropValue);
+                Deserialize(reader, propValue!, true, propValueText);
                 break;
             case TypeCode.Boolean:
-                propValue = rawPropValue == "1";
+                propValue = propValueText == "1";
                 break;
             case TypeCode.Char:
-                if (char.TryParse(rawPropValue, out char charValue))
+                if (char.TryParse(propValueText, out char charValue))
                 {
                     propValue = charValue;
                 }
                 break;
             case TypeCode.SByte:
-                if (sbyte.TryParse(rawPropValue, out sbyte sbyteValue))
+                if (sbyte.TryParse(propValueText, out sbyte sbyteValue))
                 {
                     propValue = sbyteValue;
                 }
                 break;
             case TypeCode.Byte:
-                if (byte.TryParse(rawPropValue, out byte byteValue))
+                if (byte.TryParse(propValueText, out byte byteValue))
                 {
                     propValue = byteValue;
                 }
                 break;
             case TypeCode.Int16:
-                if (short.TryParse(rawPropValue, out short shortValue))
+                if (short.TryParse(propValueText, out short shortValue))
                 {
                     propValue = shortValue;
                 }
                 break;
             case TypeCode.UInt16:
-                if (ushort.TryParse(rawPropValue, out ushort ushortValue))
+                if (ushort.TryParse(propValueText, out ushort ushortValue))
                 {
                     propValue = ushortValue;
                 }
@@ -620,7 +623,7 @@ public static class PropertySerializer
                         {
                             continue;
                         }
-                        if (propAttr.Name == rawPropValue)
+                        if (propAttr.Name == propValueText)
                         {
                             propValue = Enum.Parse(propType, enumMember.Name);
                             break;
@@ -628,55 +631,55 @@ public static class PropertySerializer
                     }
                 }
 
-                if (int.TryParse(rawPropValue, out int intValue))
+                if (int.TryParse(propValueText, out int intValue))
                 {
                     propValue = intValue;
                 }
                 break;
             case TypeCode.UInt32:
-                if (uint.TryParse(rawPropValue, out uint uintValue))
+                if (uint.TryParse(propValueText, out uint uintValue))
                 {
                     propValue = uintValue;
                 }
                 break;
             case TypeCode.Int64:
-                if (long.TryParse(rawPropValue, out long longValue))
+                if (long.TryParse(propValueText, out long longValue))
                 {
                     propValue = longValue;
                 }
                 break;
             case TypeCode.UInt64:
-                if (ulong.TryParse(rawPropValue, out ulong ulongValue))
+                if (ulong.TryParse(propValueText, out ulong ulongValue))
                 {
                     propValue = ulongValue;
                 }
                 break;
             case TypeCode.Single:
-                if (float.TryParse(rawPropValue, out float floatValue))
+                if (float.TryParse(propValueText, out float floatValue))
                 {
                     propValue = floatValue;
                 }
                 break;
             case TypeCode.Double:
-                if (double.TryParse(rawPropValue, out double doubleValue))
+                if (double.TryParse(propValueText, out double doubleValue))
                 {
                     propValue = doubleValue;
                 }
                 break;
             case TypeCode.Decimal:
-                if (decimal.TryParse(rawPropValue, out decimal decimalValue))
+                if (decimal.TryParse(propValueText, out decimal decimalValue))
                 {
                     propValue = decimalValue;
                 }
                 break;
             case TypeCode.DateTime:
-                if (DateTime.TryParse(rawPropValue, out DateTime dateTimeValue))
+                if (DateTime.TryParse(propValueText, out DateTime dateTimeValue))
                 {
                     propValue = dateTimeValue;
                 }
                 break;
             case TypeCode.String:
-                propValue = rawPropValue;
+                propValue = propValueText;
                 break;
             default:
                 throw new NotImplementedException();
