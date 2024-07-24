@@ -411,8 +411,28 @@ public static class PropertySerializer
                 {
                     throw new InvalidDataException();
                 }
+
                 object? propValue = null;
-                propValue = ParsePropertyValue(reader, pair.Value, propType);
+                Type listType = typeof(List<>);
+                if (propType.IsGenericType &&
+                    propType.GetGenericTypeDefinition() == listType)
+                {
+                    Type? elementType = propType.GetGenericArguments()
+                        .FirstOrDefault() ?? throw new InvalidDataException();
+                    Array array = ParsePropertyArrayValue(reader, elementType);
+                    Type concreteType = listType.MakeGenericType(elementType);
+                    propValue = Activator.CreateInstance(concreteType, array);
+                }
+                else if (propType.IsArray)
+                {
+                    Type? elementType = propType.GetElementType()
+                        ?? throw new InvalidDataException();
+                    propValue = ParsePropertyArrayValue(reader, elementType);
+                }
+                else
+                {
+                    propValue = ParsePropertyValue(reader, propType, pair.Value);
+                }
                 propInfo.SetValue(target, propValue);
             }
 
@@ -544,13 +564,6 @@ public static class PropertySerializer
         switch (typeCode)
         {
             case TypeCode.Object:
-                if (propType.IsArray)
-                {
-                    Type? elementType = propType.GetElementType()
-                        ?? throw new InvalidDataException();
-                    propValue = ParsePropertyArrayValue(reader, elementType);
-                    break;
-                }
                 propValue = Activator.CreateInstance(propType);
                 Deserialize(reader, propValue!, true, rawPropValue);
                 break;
