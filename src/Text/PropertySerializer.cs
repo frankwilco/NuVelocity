@@ -6,11 +6,6 @@ namespace NuVelocity.Text;
 public static class PropertySerializer
 {
     private const string kDynamicPropertiesKey = "Dynamic Properties";
-    private static readonly BindingFlags kSearchFlags =
-        BindingFlags.Public |
-        BindingFlags.NonPublic |
-        BindingFlags.Instance |
-        BindingFlags.Static;
 
     private static bool WriteProperty(
         PropertyInfo prop,
@@ -158,11 +153,10 @@ public static class PropertySerializer
             throw new ArgumentOutOfRangeException(nameof(depth));
         }
 
+
         Type type = target.GetType();
-        // Return early if object does not have a property root attribute.
-        PropertyRootAttribute? rootAttr =
-            type.GetCustomAttribute<PropertyRootAttribute>();
-        if (rootAttr == null)
+        PropertyListMetadata? classInfo = PropertyListMetadataCache.CreateOrGetFor(type);
+        if (classInfo == null)
         {
             return false;
         }
@@ -175,7 +169,7 @@ public static class PropertySerializer
         }
 
         // Write the class name and start the property list.
-        builder.AppendLine(rootAttr.ClassName);
+        builder.AppendLine(classInfo.Root.ClassName);
         builder.Append('\t', depth);
         builder.AppendLine("{");
 
@@ -184,9 +178,8 @@ public static class PropertySerializer
         int dynamicIndex = builder.Length;
 
         // Iterate through all properties.
-        foreach (var prop in type.GetProperties(kSearchFlags))
+        foreach (var propAttr in classInfo.Properties.Values)
         {
-            PropertyAttribute? propAttr = prop.GetCustomAttribute<PropertyAttribute>();
             // Ignore properties without the property attribute.
             if (propAttr == null)
             {
@@ -219,6 +212,7 @@ public static class PropertySerializer
                 continue;
             }
 
+            PropertyInfo prop = classInfo.PropertyInfoCache[propAttr.Name];
             if (propAttr.IsDynamic)
             {
                 if (WriteProperty(
@@ -306,14 +300,6 @@ public static class PropertySerializer
             throw new ArgumentNullException(nameof(target));
         }
 
-        Type type = target.GetType();
-        PropertyRootAttribute? classAttr =
-            type.GetCustomAttribute<PropertyRootAttribute>();
-        if (classAttr == null)
-        {
-            return false;
-        }
-
         // Ignore custom property list serialization logic if it is not
         // a child property list.
         if (isChild && target is IPropertyListSerializable classSerializable)
@@ -322,17 +308,11 @@ public static class PropertySerializer
             return true;
         }
 
-        // Cache property info.
-        Dictionary<string, PropertyInfo> properties = new();
-        foreach (var prop in type.GetProperties(kSearchFlags))
+        Type type = target.GetType();
+        PropertyListMetadata? classInfo = PropertyListMetadataCache.CreateOrGetFor(type);
+        if (classInfo == null)
         {
-            var propAttr = prop.GetCustomAttribute<PropertyAttribute>();
-            // Ignore properties without the attribute.
-            if (propAttr == null)
-            {
-                continue;
-            }
-            properties[propAttr.Name] = prop;
+            return false;
         }
 
         bool skipAhead = false;
@@ -409,7 +389,7 @@ public static class PropertySerializer
                 }
 
                 // Look for the property's info associated with the class.
-                properties.TryGetValue(pair.Key, out PropertyInfo? propInfo);
+                classInfo.PropertyInfoCache.TryGetValue(pair.Key, out PropertyInfo? propInfo);
                 if (propInfo == null)
                 {
 #if NV_LOG
@@ -436,7 +416,7 @@ public static class PropertySerializer
             }
 
             // 6: Name of property list.
-            else if (line == classAttr.ClassName)
+            else if (line == classInfo.Root.ClassName)
             {
                 if (classFound)
                 {
