@@ -5,6 +5,7 @@ namespace NuVelocity.Text;
 
 public static class PropertySerializer
 {
+    private const string kDynamicPropertiesKey = "Dynamic Properties";
     private static readonly BindingFlags kSearchFlags =
         BindingFlags.Public |
         BindingFlags.NonPublic |
@@ -241,7 +242,7 @@ public static class PropertySerializer
             builder.Insert(dynamicIndex, builderDynamic.ToString());
             builder.Insert(dynamicIndex, "{\n");
             builder.Insert(dynamicIndex, "\t", depth + 1);
-            builder.Insert(dynamicIndex, $"Dynamic Properties={dynamicCount}\n");
+            builder.Insert(dynamicIndex, $"{kDynamicPropertiesKey}={dynamicCount}\n");
             builder.Insert(dynamicIndex, "\t", depth + 1);
         }
 
@@ -459,7 +460,7 @@ public static class PropertySerializer
                     continue;
                 }
 
-                if (pair[0] == "Dynamic Properties")
+                if (pair[0] == kDynamicPropertiesKey)
                 {
                     continue;
                 }
