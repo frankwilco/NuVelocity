@@ -487,128 +487,15 @@ public static class PropertySerializer
                 {
                     throw new InvalidDataException();
                 }
-                TypeCode typeCode = Type.GetTypeCode(propType);
-                object? propValue = null;
-                switch (typeCode)
+                if (propType.IsArray)
                 {
-                    case TypeCode.Object:
-                        if (propType.IsArray)
-                        {
-                            arrayPropInfo = propInfo;
-                            arrayElemType = propType.GetElementType();
-                            arrayIndex = 0;
-                            inArray = true;
-                            continue;
-                        }
-                        propValue = Activator.CreateInstance(propType);
-                        Deserialize(reader, propValue!, true, pair[1]);
-                        break;
-                    case TypeCode.Boolean:
-                        propValue = pair[1] == "1";
-                        break;
-                    case TypeCode.Char:
-                        if (char.TryParse(pair[1], out char charValue))
-                        {
-                            propValue = charValue;
-                        }
-                        break;
-                    case TypeCode.SByte:
-                        if (sbyte.TryParse(pair[1], out sbyte sbyteValue))
-                        {
-                            propValue = sbyteValue;
-                        }
-                        break;
-                    case TypeCode.Byte:
-                        if (byte.TryParse(pair[1], out byte byteValue))
-                        {
-                            propValue = byteValue;
-                        }
-                        break;
-                    case TypeCode.Int16:
-                        if (short.TryParse(pair[1], out short shortValue))
-                        {
-                            propValue = shortValue;
-                        }
-                        break;
-                    case TypeCode.UInt16:
-                        if (ushort.TryParse(pair[1], out ushort ushortValue))
-                        {
-                            propValue = ushortValue;
-                        }
-                        break;
-                    case TypeCode.Int32:
-                        if (propType.IsEnum &&
-                            propType.GetCustomAttribute<FlagsAttribute>() == null)
-                        {
-                            foreach (var enumMember in propType.GetMembers())
-                            {
-                                PropertyAttribute? propAttr =
-                                    enumMember.GetCustomAttribute<PropertyAttribute>(true);
-                                if (propAttr == null)
-                                {
-                                    continue;
-                                }
-                                if (propAttr.Name == pair[1])
-                                {
-                                    propValue = Enum.Parse(propType, enumMember.Name);
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (int.TryParse(pair[1], out int intValue))
-                        {
-                            propValue = intValue;
-                        }
-                        break;
-                    case TypeCode.UInt32:
-                        if (uint.TryParse(pair[1], out uint uintValue))
-                        {
-                            propValue = uintValue;
-                        }
-                        break;
-                    case TypeCode.Int64:
-                        if (long.TryParse(pair[1], out long longValue))
-                        {
-                            propValue = longValue;
-                        }
-                        break;
-                    case TypeCode.UInt64:
-                        if (ulong.TryParse(pair[1], out ulong ulongValue))
-                        {
-                            propValue = ulongValue;
-                        }
-                        break;
-                    case TypeCode.Single:
-                        if (float.TryParse(pair[1], out float floatValue))
-                        {
-                            propValue = floatValue;
-                        }
-                        break;
-                    case TypeCode.Double:
-                        if (double.TryParse(pair[1], out double doubleValue))
-                        {
-                            propValue = doubleValue;
-                        }
-                        break;
-                    case TypeCode.Decimal:
-                        if (decimal.TryParse(pair[1], out decimal decimalValue))
-                        {
-                            propValue = decimalValue;
-                        }
-                        break;
-                    case TypeCode.DateTime:
-                        if (DateTime.TryParse(pair[1], out DateTime dateTimeValue))
-                        {
-                            propValue = dateTimeValue;
-                        }
-                        break;
-                    case TypeCode.String:
-                        propValue = pair[1];
-                        break;
-                    default:
-                        throw new NotImplementedException();
+                    arrayPropInfo = propInfo;
+                    arrayElemType = propType.GetElementType();
+                    arrayIndex = 0;
+                    inArray = true;
+                    continue;
                 }
+                object? propValue = ParsePropertyValue(reader, pair[1], propType);
                 propInfo.SetValue(target, propValue);
             }
 
@@ -635,6 +522,127 @@ public static class PropertySerializer
         }
 
         return classFound;
+    }
+
+    private static object? ParsePropertyValue(StreamReader reader, string rawPropValue, Type propType)
+    {
+        object? propValue = null;
+
+        TypeCode typeCode = Type.GetTypeCode(propType);
+        switch (typeCode)
+        {
+            case TypeCode.Object:
+                propValue = Activator.CreateInstance(propType);
+                Deserialize(reader, propValue!, true, rawPropValue);
+                break;
+            case TypeCode.Boolean:
+                propValue = rawPropValue == "1";
+                break;
+            case TypeCode.Char:
+                if (char.TryParse(rawPropValue, out char charValue))
+                {
+                    propValue = charValue;
+                }
+                break;
+            case TypeCode.SByte:
+                if (sbyte.TryParse(rawPropValue, out sbyte sbyteValue))
+                {
+                    propValue = sbyteValue;
+                }
+                break;
+            case TypeCode.Byte:
+                if (byte.TryParse(rawPropValue, out byte byteValue))
+                {
+                    propValue = byteValue;
+                }
+                break;
+            case TypeCode.Int16:
+                if (short.TryParse(rawPropValue, out short shortValue))
+                {
+                    propValue = shortValue;
+                }
+                break;
+            case TypeCode.UInt16:
+                if (ushort.TryParse(rawPropValue, out ushort ushortValue))
+                {
+                    propValue = ushortValue;
+                }
+                break;
+            case TypeCode.Int32:
+                if (propType.IsEnum &&
+                    propType.GetCustomAttribute<FlagsAttribute>() == null)
+                {
+                    foreach (var enumMember in propType.GetMembers())
+                    {
+                        PropertyAttribute? propAttr =
+                            enumMember.GetCustomAttribute<PropertyAttribute>(true);
+                        if (propAttr == null)
+                        {
+                            continue;
+                        }
+                        if (propAttr.Name == rawPropValue)
+                        {
+                            propValue = Enum.Parse(propType, enumMember.Name);
+                            break;
+                        }
+                    }
+                }
+
+                if (int.TryParse(rawPropValue, out int intValue))
+                {
+                    propValue = intValue;
+                }
+                break;
+            case TypeCode.UInt32:
+                if (uint.TryParse(rawPropValue, out uint uintValue))
+                {
+                    propValue = uintValue;
+                }
+                break;
+            case TypeCode.Int64:
+                if (long.TryParse(rawPropValue, out long longValue))
+                {
+                    propValue = longValue;
+                }
+                break;
+            case TypeCode.UInt64:
+                if (ulong.TryParse(rawPropValue, out ulong ulongValue))
+                {
+                    propValue = ulongValue;
+                }
+                break;
+            case TypeCode.Single:
+                if (float.TryParse(rawPropValue, out float floatValue))
+                {
+                    propValue = floatValue;
+                }
+                break;
+            case TypeCode.Double:
+                if (double.TryParse(rawPropValue, out double doubleValue))
+                {
+                    propValue = doubleValue;
+                }
+                break;
+            case TypeCode.Decimal:
+                if (decimal.TryParse(rawPropValue, out decimal decimalValue))
+                {
+                    propValue = decimalValue;
+                }
+                break;
+            case TypeCode.DateTime:
+                if (DateTime.TryParse(rawPropValue, out DateTime dateTimeValue))
+                {
+                    propValue = dateTimeValue;
+                }
+                break;
+            case TypeCode.String:
+                propValue = rawPropValue;
+                break;
+            default:
+                throw new NotImplementedException();
+        }
+
+        return propValue;
     }
 
     public static bool Deserialize(Stream stream, object target)
