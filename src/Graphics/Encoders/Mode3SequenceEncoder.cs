@@ -91,13 +91,8 @@ public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
             DecodeStandardHeader(reader);
         }
 
-        _hasProperties = PropertyListSerializer.Deserialize(ListData, Sequence);
-        PropertyListSerializer.Deserialize(ListData, SequenceFrameInfoList);
-        DecodeSequenceFrameInfoList();
-    }
-
-    private void DecodeSequenceFrameInfoList()
-    {
+        _hasProperties =
+            PropertyListSerializer.Deserialize(ListData, Sequence);
         // XXX: Wik and earlier don't provide all the information in
         // the sequence property list. Assume that we're lacking info
         // if JPEG quality is set to 0 or if FPS values don't match.
@@ -115,9 +110,14 @@ public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
             Sequence.Flags |= PropertySerializationFlags.HasLegacyImageQuality;
         }
 
-        // Try to take properties from the flags property. However, not
-        // all sequence properties are represented in the Flags property.
-        SequenceFrameInfoList.CopyTo(Sequence, BlitTypeRevision);
+        bool hasFrameInfoList =
+            PropertyListSerializer.Deserialize(ListData, SequenceFrameInfoList);
+        if (hasFrameInfoList)
+        {
+            // Try to take properties from the flags property. However, not
+            // all sequence properties are represented in the Flags property.
+            SequenceFrameInfoList.CopyTo(Sequence, BlitTypeRevision);
+        }
     }
 
     [MemberNotNull(nameof(ListData))]
