@@ -24,7 +24,7 @@ public class Frame
 
     [Property("RLE All Copy",
         defaultValue: false,
-        excludeFlags: PropertySerializationFlags.HasSimpleFormat)]
+        excludeFlags: PropertySerializationFlags.ImageFormat1)]
     public bool? IsRleAllCopy { get; set; }
 
     [Property("Crop Color 0",
@@ -38,44 +38,44 @@ public class Frame
 
     [Property("Do Dither",
         defaultValue: true,
-        excludeFlags: PropertySerializationFlags.HasSimpleFormat)]
+        excludeFlags: PropertySerializationFlags.ImageFormat1)]
     public bool? DoDither { get; set; }
 
     // TN: Present in some Ricochet Xtreme frame files.
     [Property("Dither",
         defaultValue: true,
-        includeFlags: PropertySerializationFlags.HasSimpleFormat)]
+        includeFlags: PropertySerializationFlags.ImageFormat1)]
     internal bool? Dither
     {
         get { return DoDither; }
         set
         {
             DoDither = value;
-            Flags |= PropertySerializationFlags.HasSimpleFormat;
+            Flags |= PropertySerializationFlags.ImageFormat1;
         }
     }
 
     [Property("Change Bit Depth",
         defaultValue: true,
-        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality)]
+        excludeFlags: PropertySerializationFlags.ImageFormat2)]
     public bool? ChangeBitDepth { get; set; }
 
     [Property("Loss Less",
         defaultValue: false,
-        includeFlags: PropertySerializationFlags.HasLegacyImageQuality)]
+        includeFlags: PropertySerializationFlags.ImageFormat2)]
     internal bool? LossLess1
     {
         get { return IsLossless; }
         set
         {
             IsLossless = value;
-            Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+            Flags |= PropertySerializationFlags.ImageFormat2;
         }
     }
 
     [Property("Loss Less 2",
         defaultValue: false,
-        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality)]
+        excludeFlags: PropertySerializationFlags.ImageFormat2)]
     internal bool? LossLess2 {
         get => IsLossless;
         set => IsLossless = value;
@@ -85,22 +85,22 @@ public class Frame
 
     [Property("Quality",
         defaultValue: 80,
-        includeFlags: PropertySerializationFlags.HasLegacyImageQuality)]
+        includeFlags: PropertySerializationFlags.ImageFormat2)]
     internal int? Quality1
     {
         get { return JpegQuality; }
         set
         {
             JpegQuality = value;
-            Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+            Flags |= PropertySerializationFlags.ImageFormat2;
         }
     }
 
     // TN: Present in some Ricochet Lost Worlds frame files.
     [Property("JPEG Quality",
         defaultValue: 80,
-        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality |
-            PropertySerializationFlags.HasJpegQuality2)]
+        excludeFlags: PropertySerializationFlags.ImageFormat2 |
+            PropertySerializationFlags.ImageFormat3)]
     internal int? JpegQuality1
     {
         get => JpegQuality;
@@ -109,8 +109,8 @@ public class Frame
 
     [Property("JPEG Quality 2",
         defaultValue: 80,
-        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality,
-        includeFlags: PropertySerializationFlags.HasJpegQuality2)]
+        excludeFlags: PropertySerializationFlags.ImageFormat2,
+        includeFlags: PropertySerializationFlags.ImageFormat3)]
     internal int? JpegQuality2
     {
         get { return JpegQuality; }
@@ -118,7 +118,7 @@ public class Frame
         {
             if (JpegQuality == null)
             {
-                Flags |= PropertySerializationFlags.HasJpegQuality2;
+                Flags |= PropertySerializationFlags.ImageFormat3;
             }
             JpegQuality = value;
         }
@@ -128,19 +128,19 @@ public class Frame
 
     [Property("Center Hot Spot",
         defaultValue: false,
-        excludeFlags: PropertySerializationFlags.HasSimpleFormat)]
+        excludeFlags: PropertySerializationFlags.ImageFormat1)]
     public bool? CenterHotSpot { get; set; }
 
     [Property("Blended With Black",
         defaultValue: true,
-        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality |
-            PropertySerializationFlags.HasSimpleFormat)]
+        excludeFlags: PropertySerializationFlags.ImageFormat2 |
+            PropertySerializationFlags.ImageFormat1)]
     public bool? BlendedWithBlack { get; set; }
 
     [Property("Remove Dead Alpha",
         defaultValue: true,
-        includeFlags: PropertySerializationFlags.HasLegacyImageQuality,
-        excludeFlags: PropertySerializationFlags.HasSimpleFormat)]
+        includeFlags: PropertySerializationFlags.ImageFormat2,
+        excludeFlags: PropertySerializationFlags.ImageFormat1)]
     public bool? RemoveDeadAlpha
     {
         get { return _removeDeadAlpha; }
@@ -148,7 +148,7 @@ public class Frame
         {
             if (_removeDeadAlpha == null)
             {
-                Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+                Flags |= PropertySerializationFlags.ImageFormat2;
             }
             _removeDeadAlpha = value;
         }
@@ -156,8 +156,8 @@ public class Frame
 
     [Property("Remove Black Blending",
         defaultValue: true,
-        includeFlags: PropertySerializationFlags.HasLegacyImageQuality,
-        excludeFlags: PropertySerializationFlags.HasSimpleFormat)]
+        includeFlags: PropertySerializationFlags.ImageFormat2,
+        excludeFlags: PropertySerializationFlags.ImageFormat1)]
     public bool? RemoveBlackBlending
     {
         get { return _removeBlackBlending; }
@@ -165,7 +165,7 @@ public class Frame
         {
             if (_removeBlackBlending == null)
             {
-                Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+                Flags |= PropertySerializationFlags.ImageFormat2;
             }
             _removeBlackBlending = value;
         }
@@ -173,13 +173,13 @@ public class Frame
 
     [Property("Load Black Biased",
         defaultValue: false,
-        excludeFlags: PropertySerializationFlags.HasSimpleFormat)]
+        excludeFlags: PropertySerializationFlags.ImageFormat1)]
     public bool? LoadBlackBiased { get; set; }
 
     [Property("Final Bit Depth",
         defaultValue: 0,
-        includeFlags: PropertySerializationFlags.HasLegacyImageQuality,
-        excludeFlags: PropertySerializationFlags.HasSimpleFormat)]
+        includeFlags: PropertySerializationFlags.ImageFormat2,
+        excludeFlags: PropertySerializationFlags.ImageFormat1)]
     public int? FinalBitDepth
     {
         get { return _finalBitDepth; }
@@ -187,7 +187,7 @@ public class Frame
         {
             if (_finalBitDepth == null)
             {
-                Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+                Flags |= PropertySerializationFlags.ImageFormat2;
             }
             _finalBitDepth = value;
         }
@@ -195,7 +195,7 @@ public class Frame
 
     [Property("Blit Type",
         defaultValue: Graphics.BlitType.TransparentMask,
-        excludeFlags: PropertySerializationFlags.HasSimpleFormat)]
+        excludeFlags: PropertySerializationFlags.ImageFormat1)]
     public BlitType? BlitType { get; set; }
 
     [Property("Mipmap For Native Version",

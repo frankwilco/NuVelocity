@@ -70,7 +70,7 @@ public class Sequence
 
     [Property("Frames Per Second",
         defaultValue: 15.0f,
-        excludeFlags: PropertySerializationFlags.HasSimpleFormat)]
+        excludeFlags: PropertySerializationFlags.ImageFormat1)]
     public float? FramesPerSecond { get; set; }
 
     [Property("Blit Type",
@@ -87,14 +87,14 @@ public class Sequence
 
     [Property("Use Every",
         defaultValue: 1,
-        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality |
-            PropertySerializationFlags.HasSimpleFormat)]
+        excludeFlags: PropertySerializationFlags.ImageFormat2 |
+            PropertySerializationFlags.ImageFormat1)]
     public int? UseEvery { get; set; }
 
     [Property("Always Include Last Frame",
         defaultValue: false,
-        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality |
-            PropertySerializationFlags.HasSimpleFormat)]
+        excludeFlags: PropertySerializationFlags.ImageFormat2 |
+            PropertySerializationFlags.ImageFormat1)]
     public bool? AlwaysIncludeLastFrame { get; set; }
 
     [Property("Center Hot Spot",
@@ -103,8 +103,8 @@ public class Sequence
 
     [Property("Blended With Black",
         defaultValue: true,
-        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality |
-            PropertySerializationFlags.HasSimpleFormat)]
+        excludeFlags: PropertySerializationFlags.ImageFormat2 |
+            PropertySerializationFlags.ImageFormat1)]
     public bool? BlendedWithBlack { get; set; }
 
     [Property("Crop Color 0",
@@ -140,47 +140,47 @@ public class Sequence
 
     [Property("Run Length Encode",
         defaultValue: true,
-        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality |
-            PropertySerializationFlags.HasSimpleFormat)]
+        excludeFlags: PropertySerializationFlags.ImageFormat2 |
+            PropertySerializationFlags.ImageFormat1)]
     public bool? IsRle { get; set; }
 
     [Property("Do Dither",
         defaultValue: true,
-        excludeFlags: PropertySerializationFlags.HasSimpleFormat)]
+        excludeFlags: PropertySerializationFlags.ImageFormat1)]
     public bool? DoDither { get; set; }
 
     // TN: Present in Star Trek Away Team sequence files.
     [Property("Dither",
         defaultValue: true,
-        includeFlags: PropertySerializationFlags.HasSimpleFormat)]
+        includeFlags: PropertySerializationFlags.ImageFormat1)]
     internal bool? Dither
     {
         get { return DoDither; }
         set
         {
             DoDither = value;
-            Flags |= PropertySerializationFlags.HasSimpleFormat;
+            Flags |= PropertySerializationFlags.ImageFormat1;
         }
     }
 
     [Property("Loss Less",
         defaultValue: false,
-        includeFlags: PropertySerializationFlags.HasLegacyImageQuality,
-        excludeFlags: PropertySerializationFlags.HasSimpleFormat)]
+        includeFlags: PropertySerializationFlags.ImageFormat2,
+        excludeFlags: PropertySerializationFlags.ImageFormat1)]
     internal bool? LossLess1
     {
         get { return IsLossless; }
         set
         {
             IsLossless = value;
-            Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+            Flags |= PropertySerializationFlags.ImageFormat2;
         }
     }
 
     [Property("Loss Less 2",
         defaultValue: false,
-        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality |
-            PropertySerializationFlags.HasSimpleFormat)]
+        excludeFlags: PropertySerializationFlags.ImageFormat2 |
+            PropertySerializationFlags.ImageFormat1)]
     internal bool? LossLess2
     {
         get => IsLossless;
@@ -191,14 +191,14 @@ public class Sequence
 
     [Property("Quality",
         defaultValue: 65,
-        includeFlags: PropertySerializationFlags.HasLegacyImageQuality)]
+        includeFlags: PropertySerializationFlags.ImageFormat2)]
     internal int? Quality1
     {
         get { return JpegQuality; }
         set
         {
             JpegQuality = value;
-            Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+            Flags |= PropertySerializationFlags.ImageFormat2;
         }
     }
 
@@ -213,9 +213,9 @@ public class Sequence
 
     [Property("JPEG Quality",
         defaultValue: 80,
-        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality |
-            PropertySerializationFlags.HasJpegQuality2 |
-            PropertySerializationFlags.HasSimpleFormat)]
+        excludeFlags: PropertySerializationFlags.ImageFormat2 |
+            PropertySerializationFlags.ImageFormat3 |
+            PropertySerializationFlags.ImageFormat1)]
     internal int? JpegQuality1
     {
         get => JpegQuality;
@@ -224,8 +224,8 @@ public class Sequence
 
     [Property("JPEG Quality 2",
         defaultValue: 80,
-        excludeFlags: PropertySerializationFlags.HasLegacyImageQuality,
-        includeFlags: PropertySerializationFlags.HasJpegQuality2)]
+        excludeFlags: PropertySerializationFlags.ImageFormat2,
+        includeFlags: PropertySerializationFlags.ImageFormat3)]
     internal int? JpegQuality2
     {
         get { return JpegQuality; }
@@ -233,7 +233,7 @@ public class Sequence
         {
             if (JpegQuality == null)
             {
-                Flags |= PropertySerializationFlags.HasJpegQuality2;
+                Flags |= PropertySerializationFlags.ImageFormat3;
             }
             JpegQuality = value;
         }

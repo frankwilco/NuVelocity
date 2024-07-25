@@ -6,9 +6,9 @@ public enum PropertySerializationFlags
     None =                     0,
     Compact =                  1 << 0,
 
-    HasJpegQuality2 =          1 << 1,
-    HasSimpleFormat =          1 << 2,
-    HasLegacyImageQuality =    1 << 3,
+    ImageFormat1 =             1 << 1,
+    ImageFormat2 =             1 << 2,
+    ImageFormat3 =             1 << 3,
     HasMipmapSupport =         1 << 4,
 
     HasYSort =                 1 << 5,

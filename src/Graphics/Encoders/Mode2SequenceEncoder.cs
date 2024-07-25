@@ -197,7 +197,7 @@ public class Mode2SequenceEncoder : SequenceEncoder
 
     private void DecodePropertyListForZax(BinaryReader reader)
     {
-        Sequence.Flags |= PropertySerializationFlags.HasSimpleFormat;
+        Sequence.Flags |= PropertySerializationFlags.ImageFormat1;
         Sequence.BlendedWithBlack = reader.ReadBoolean();
         Sequence.CropAlphaChannel = reader.ReadBoolean();
         Sequence.Use8BitAlpha = reader.ReadBoolean();
@@ -208,7 +208,7 @@ public class Mode2SequenceEncoder : SequenceEncoder
 
     private void DecodePropertyListForRicochetLostWorlds(BinaryReader reader)
     {
-        Sequence.Flags |= PropertySerializationFlags.HasJpegQuality2;
+        Sequence.Flags |= PropertySerializationFlags.ImageFormat3;
         Sequence.XOffset = reader.ReadInt32();
         Sequence.YOffset = reader.ReadInt32();
         Sequence.UseEvery = reader.ReadInt32();
@@ -225,7 +225,7 @@ public class Mode2SequenceEncoder : SequenceEncoder
 
     private void DecodePropertyListForSwarm(BinaryReader reader)
     {
-        Sequence.Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+        Sequence.Flags |= PropertySerializationFlags.ImageFormat2;
         Sequence.XOffset = reader.ReadInt32();
         Sequence.YOffset = reader.ReadInt32();
         Sequence.CenterHotSpot = reader.ReadBoolean();
@@ -249,7 +249,7 @@ public class Mode2SequenceEncoder : SequenceEncoder
 
     private void DecodePropertyListForLionheart(BinaryReader reader)
     {
-        Sequence.Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+        Sequence.Flags |= PropertySerializationFlags.ImageFormat2;
         Sequence.XOffset = reader.ReadInt32();
         Sequence.YOffset = reader.ReadInt32();
         Sequence.CenterHotSpot = reader.ReadBoolean();

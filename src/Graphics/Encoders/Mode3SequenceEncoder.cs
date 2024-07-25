@@ -107,7 +107,7 @@ public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
         else
         {
             // XXX: Assume legacy format is in use.
-            Sequence.Flags |= PropertySerializationFlags.HasLegacyImageQuality;
+            Sequence.Flags |= PropertySerializationFlags.ImageFormat2;
         }
 
         bool hasFrameInfoList =
