@@ -3,7 +3,7 @@
 [PropertyRoot("CSequenceFrameInfoList", "Sequence Frame Info List")]
 public class SequenceFrameInfoList
 {
-    [Property("Frame Infos")]
+    [PropertyArray("Frame Infos", "Frame Info")]
     public FrameInfo[] Values { get; set; }
 
     [Property("WasRLE")]

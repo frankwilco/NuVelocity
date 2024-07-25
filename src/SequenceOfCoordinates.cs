@@ -3,12 +3,11 @@
 [PropertyRoot("CSequenceOfCoordinates", "Sequence of Coordinates")]
 public class SequenceOfCoordinates
 {
+    [PropertyArray("Coordinates", "Coordinate")]
     public List<Coordinates> Coordinates { get; set; }
 
-    [Property("Coordinates")]
-    protected Coordinates[] CoordinatesArray
+    public SequenceOfCoordinates()
     {
-        get { return Coordinates.ToArray(); }
-        set { Coordinates = new(value); }
+        Coordinates = new();
     }
 }
