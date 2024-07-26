@@ -577,8 +577,7 @@ public static class PropertyListSerializer
                 object? element = null;
                 if (!string.IsNullOrWhiteSpace(pair.Value))
                 {
-                    element = Activator.CreateInstance(elementType);
-                    Deserialize(reader, element!, true, pair.Value);
+                    element = ParsePropertyValue(reader, elementType, pair.Value);
                 }
 
                 if (lengthKnown)
