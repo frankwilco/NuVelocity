@@ -756,7 +756,7 @@ public static class PropertyListSerializer
         {
             throw new ArgumentNullException(nameof(target));
         }
-        using StreamReader reader = new(stream);
+        using StreamReader reader = new(stream, CP1252EncodingProvider.CP1252);
         return Deserialize(reader, target);
     }
 
