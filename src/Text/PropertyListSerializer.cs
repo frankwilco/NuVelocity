@@ -518,6 +518,7 @@ public static class PropertyListSerializer
         int ignoredElements = 0;
         int index = 0;
         bool lengthKnown = false;
+        bool isSingleElement = false;
         Array array = Array.CreateInstance(elementType, 0);
 
         while (!reader.EndOfStream)
@@ -584,9 +585,23 @@ public static class PropertyListSerializer
                 {
                     array.SetValue(element, index);
                 }
-                else
+                else if (element == null)
                 {
                     ignoredElements++;
+                }
+                else
+                {
+#if NV_LOG
+                    Console.WriteLine("Creating a single-valued array (assumed).");
+#endif
+                    if (isSingleElement)
+                    {
+                        throw new SerializationException(
+                            "Array should only have 1 element.");
+                    }
+                    array = Array.CreateInstance(elementType, 1);
+                    array.SetValue(element, 0);
+                    isSingleElement = true;
                 }
 
                 index++;
