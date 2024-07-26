@@ -2,7 +2,8 @@
 
 public class PropertyArrayAttribute : PropertyAttribute
 {
-    public const string ClassName = "Array";
+    public const string ArrayListID = "Array";
+    public const string ArrayAsciiEscapedID = "bytes of binary in ASCII esc";
     public const string DefaultItemKey = "Array Item";
     public const string DefaultItemCountKey = "Array Count";
     public const string NamedItemCountKey = "Item Count";

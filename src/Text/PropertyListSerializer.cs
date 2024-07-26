@@ -9,6 +9,17 @@ public static class PropertyListSerializer
 {
     private const string kDynamicPropertiesKey = "Dynamic Properties";
 
+    private static readonly Dictionary<int, byte> AsciiBinaryLookupTable = new()
+    {
+        {'#', 255}, {'$', 123}, {'%', 125}, {'&', 0},  {'\'', 1}, {'(', 2},
+        {')', 3},   {'*', 4},   {'+', 5},   {',', 6},  {'-', 7},  {'.', 8},
+        {'/', 9},   {'0', 10},  {'1', 11},  {'2', 12}, {'3', 13}, {'4', 14},
+        {'5', 15},  {'6', 16},  {'7', 17},  {'8', 18}, {'9', 19}, {':', 20},
+        {';', 21},  {'<', 22},  {'=', 23},  {'>', 24}, {'?', 25}, {'@', 26},
+        {'A', 27},  {'B', 28},  {'C', 29},  {'D', 30}, {'E', 31}, {'F', 32},
+        {'"', 33}
+    };
+
     private static readonly Type ListType =
         typeof(List<>);
     private static readonly Type NullableType =
@@ -144,7 +155,7 @@ public static class PropertyListSerializer
         int collectionLength)
     {
         // Write property type (Array).
-        builder.AppendLine(PropertyArrayAttribute.ClassName);
+        builder.AppendLine(PropertyArrayAttribute.ArrayListID);
         builder.Append('\t', depth + 1);
         builder.AppendLine("{");
 
@@ -453,6 +464,19 @@ public static class PropertyListSerializer
                     continue;
                 }
 
+                classInfo.Properties.TryGetValue(pair.Key, out PropertyAttribute? propAttr);
+                if (propAttr == null)
+                {
+                    string message =
+                        $"Missing property attribute for: {propInfo.Name}";
+#if NV_LOG
+                    Console.WriteLine(message);
+#endif
+#if DEBUG
+                    throw new SerializationException(message);
+#endif
+                }
+
                 Type? propType = propInfo.PropertyType;
                 // Get the underlying type if it's nullable.
                 if (propType.IsGenericType &&
@@ -466,20 +490,31 @@ public static class PropertyListSerializer
                 }
 
                 object? propValue = null;
-                if (propType.IsGenericType &&
-                    propType.GetGenericTypeDefinition() == ListType)
-                {
-                    Type? elementType = propType.GetGenericArguments()
-                        .FirstOrDefault() ?? throw new InvalidDataException();
-                    Array array = ParsePropertyArrayValue(reader, elementType);
-                    Type concreteType = ListType.MakeGenericType(elementType);
-                    propValue = Activator.CreateInstance(concreteType, array);
-                }
-                else if (propType.IsArray)
-                {
-                    Type? elementType = propType.GetElementType()
-                        ?? throw new InvalidDataException();
-                    propValue = ParsePropertyArrayValue(reader, elementType);
+
+                bool isList = propType.IsGenericType &&
+                    propType.GetGenericTypeDefinition() == ListType;
+                bool isArray = propType.IsArray;
+
+                if (isList || isArray) {
+                    PropertyArrayAttribute? propArrayAttr =
+                        propAttr as PropertyArrayAttribute ?? throw new SerializationException(
+                            $"Missing array property attribute for: {propInfo.Name}");
+                    if (isList)
+                    {
+                        Type? elementType = propType.GetGenericArguments()
+                            .FirstOrDefault() ?? throw new InvalidDataException();
+                        Array array = ParsePropertyArrayValue(
+                            reader, elementType, pair.Value);
+                        Type concreteType = ListType.MakeGenericType(elementType);
+                        propValue = Activator.CreateInstance(concreteType, array);
+                    }
+                    else
+                    {
+                        Type? elementType = propType.GetElementType()
+                            ?? throw new InvalidDataException();
+                        propValue = ParsePropertyArrayValue(
+                            reader, elementType, pair.Value);
+                    }
                 }
                 else
                 {
@@ -513,7 +548,119 @@ public static class PropertyListSerializer
         return classFound;
     }
 
-    private static Array ParsePropertyArrayValue(StreamReader reader, Type elementType)
+    private static Array ParsePropertyArrayValue(
+        StreamReader reader,
+        Type elementType,
+        string encoding)
+    {
+        if (encoding == PropertyArrayAttribute.ArrayListID)
+        {
+            return ParsePropertyArrayListValue(reader, elementType);
+        }
+        else if (encoding.EndsWith(PropertyArrayAttribute.ArrayAsciiEscapedID))
+        {
+            if (elementType != typeof(byte))
+            {
+                throw new SerializationException(
+                    "ASCII-escaped arrays can only be deserialized to a byte enumerable.");
+            }
+            return ParsePropertyArrayAsciiEscapedValue(reader, encoding);
+        }
+        else
+        {
+            throw new SerializationException("Unknown array encoding type.");
+        }
+    }
+
+    private static byte[] ParsePropertyArrayAsciiEscapedValue(
+        StreamReader reader,
+        string encoding)
+    {
+        byte[] array;
+        int firstSpaceIndex = encoding.IndexOf(' ');
+        if (firstSpaceIndex > 0)
+        {
+            string lengthString = encoding[..firstSpaceIndex];
+            if (int.TryParse(lengthString, out int length))
+            {
+                array = new byte[length];
+            }
+            else
+            {
+                throw new InvalidDataException();
+            }
+        }
+        else
+        {
+            throw new InvalidDataException();
+        }
+
+        // Return early if we have an empty byte array.
+        if (array.Length == 0)
+        {
+            return array;
+        }
+
+        // TN: 81 bytes.
+        int index = 0;
+        int currentChar;
+        bool foundStart = false;
+        // FIXME: this is broken because reader.Read() gives us the
+        // next character in UTF-8 format regardless of the specified
+        // encoding in StreamReader. We should replace all uses of
+        // StreamReader with a BinaryReader instead to deal with this.
+        while ((currentChar = reader.Read()) != -1)
+        {
+            if (currentChar == '\t' ||
+                currentChar == '\r' ||
+                currentChar == '\n')
+            {
+                continue;
+            }
+
+            if (currentChar == '{')
+            {
+                if (foundStart)
+                {
+                    throw new SerializationException(
+                        "Duplicate start character in ASCII-encoded byte array.");
+                }
+                foundStart = true;
+                continue;
+            }
+            else if (currentChar == '}')
+            {
+                int nextChar = reader.Peek();
+                if (nextChar == '\r')
+                {
+                    reader.Read();
+                    reader.Read();
+                }
+                if (nextChar == '\n')
+                {
+                    reader.Read();
+                }
+                break;
+            }
+
+            byte value;
+            if (currentChar == '!')
+            {
+                int encodedValue = reader.Read();
+                value = AsciiBinaryLookupTable[encodedValue];
+            }
+            else
+            {
+                value = (byte)currentChar;
+            }
+            array[index] = value;
+            index++;
+        }
+
+        return array;
+    }
+
+    private static Array ParsePropertyArrayListValue(StreamReader reader, Type elementType)
     {
         int ignoredElements = 0;
         int index = 0;
