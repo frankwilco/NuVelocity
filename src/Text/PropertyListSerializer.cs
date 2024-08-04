@@ -357,7 +357,7 @@ public static class PropertyListSerializer
     #region Deserialization
 
     private static bool Deserialize(
-        StreamReader reader,
+        PropertyListReader reader,
         object target,
         bool isChild = false,
         string classNameOrValue = "")
@@ -555,7 +555,7 @@ public static class PropertyListSerializer
     }
 
     private static Array ParsePropertyArrayValue(
-        StreamReader reader,
+        PropertyListReader reader,
         Type elementType,
         string encoding)
     {
@@ -579,7 +579,7 @@ public static class PropertyListSerializer
     }
 
     private static byte[] ParsePropertyArrayAsciiEscapedValue(
-        StreamReader reader,
+        PropertyListReader reader,
         string encoding)
     {
         byte[] array;
@@ -609,14 +609,13 @@ public static class PropertyListSerializer
 
         // TN: 81 bytes.
         int index = 0;
-        int currentChar;
+        byte currentChar;
         bool foundStart = false;
-        // FIXME: this is broken because reader.Read() gives us the
-        // next character in UTF-8 format regardless of the specified
-        // encoding in StreamReader. We should replace all uses of
-        // StreamReader with a BinaryReader instead to deal with this.
-        while ((currentChar = reader.Read()) != -1)
+
+        while (!reader.EndOfStream)
         {
+            currentChar = reader.ReadByte();
+
             if (currentChar == '\t' ||
                 currentChar == '\r' ||
                 currentChar == '\n')
@@ -636,28 +635,19 @@ public static class PropertyListSerializer
             }
             else if (currentChar == '}')
             {
-                int nextChar = reader.Peek();
-                if (nextChar == '\r')
-                {
-                    reader.Read();
-                    reader.Read();
-                }
-                if (nextChar == '\n')
-                {
-                    reader.Read();
-                }
+                reader.SkipLine();
                 break;
             }
 
             byte value;
             if (currentChar == '!')
             {
-                int encodedValue = reader.Read();
+                byte encodedValue = reader.ReadByte();
                 value = AsciiBinaryLookupTable[encodedValue];
             }
             else
             {
-                value = (byte)currentChar;
+                value = currentChar;
             }
             array[index] = value;
             index++;
@@ -666,7 +656,7 @@ public static class PropertyListSerializer
         return array;
     }
 
-    private static Array ParsePropertyArrayListValue(StreamReader reader, Type elementType)
+    private static Array ParsePropertyArrayListValue(PropertyListReader reader, Type elementType)
     {
         int ignoredElements = 0;
         int index = 0;
@@ -776,7 +766,7 @@ public static class PropertyListSerializer
     }
 
     private static object? ParsePropertyValue(
-        StreamReader reader,
+        PropertyListReader reader,
         Type propType,
         string propValueText)
     {
@@ -909,7 +899,7 @@ public static class PropertyListSerializer
         {
             throw new ArgumentNullException(nameof(target));
         }
-        using StreamReader reader = new(stream, CP1252EncodingProvider.CP1252);
+        using PropertyListReader reader = new(stream, CP1252EncodingProvider.CP1252);
         return Deserialize(reader, target);
     }
 
