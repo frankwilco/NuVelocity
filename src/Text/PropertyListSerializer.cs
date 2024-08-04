@@ -29,6 +29,8 @@ public static class PropertyListSerializer
     private static readonly Type PropertyAttributeType =
         typeof(PropertyAttribute);
 
+    #region Serialization
+
     private static bool WriteProperty(
         PropertyInfo prop,
         PropertyAttribute propAttr,
@@ -349,6 +351,10 @@ public static class PropertyListSerializer
         using StreamWriter writer = new(stream);
         return Serialize(writer, target, sourceFilter);
     }
+
+    #endregion
+
+    #region Deserialization
 
     private static bool Deserialize(
         StreamReader reader,
@@ -921,4 +927,6 @@ public static class PropertyListSerializer
         using MemoryStream stream = new(buffer);
         return Deserialize(stream, target);
     }
+
+    #endregion
 }
