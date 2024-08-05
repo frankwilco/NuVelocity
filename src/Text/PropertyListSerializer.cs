@@ -795,8 +795,22 @@ public static class PropertyListSerializer
         switch (typeCode)
         {
             case TypeCode.Object:
-                propValue = Activator.CreateInstance(propType);
-                Deserialize(reader, propValue!, true, propValueText);
+                if (string.IsNullOrEmpty(propValueText))
+                {
+                    break;
+                }
+                // Metadata cache takes precedence over type declared by
+                // the class.
+                Type instanceType =
+                    PropertyListMetadataCache.Get(propValueText)?.Type
+                    ?? propType;
+                propValue = Activator.CreateInstance(instanceType);
+                if (propValue == null)
+                {
+                    throw new SerializationException(
+                        "Failed to create instance of specified type.");
+                }
+                Deserialize(reader, propValue, true, propValueText);
                 break;
             case TypeCode.Boolean:
                 propValue = propValueText == "1";
