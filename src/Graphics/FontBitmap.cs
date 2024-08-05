@@ -1,7 +1,7 @@
 ﻿namespace NuVelocity.Graphics;
 
 // TODO: check default values.
-[PropertyRoot("CFontBitmap", "Bitmap Font")]
+[PropertyRoot("CFontBitmap", typeof(FontBitmap))]
 public class FontBitmap : Font
 {
     [Property("First ASCII", defaultValue: 0)]

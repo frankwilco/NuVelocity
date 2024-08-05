@@ -1,6 +1,6 @@
 ﻿namespace NuVelocity.Graphics;
 
-[PropertyRoot("CStandAloneFrame", "Stand Alone Frame")]
+[PropertyRoot("CStandAloneFrame", typeof(Frame))]
 public class Frame
 {
     private bool? _mipmapForNativeVersion;

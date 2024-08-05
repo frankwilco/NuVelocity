@@ -10,8 +10,11 @@ internal class PropertyListMetadata
 
     public Dictionary<string, PropertyInfo> PropertyInfoCache { get; private set; }
 
-    public PropertyListMetadata(PropertyRootAttribute rootAttribute)
+    public Type Type { get; private set; }
+
+    public PropertyListMetadata(Type type, PropertyRootAttribute rootAttribute)
     {
+        Type = type;
         Root = rootAttribute;
         Properties = new();
         PropertyInfoCache = new();

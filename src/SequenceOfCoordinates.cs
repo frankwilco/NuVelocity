@@ -1,6 +1,6 @@
 ﻿namespace NuVelocity;
 
-[PropertyRoot("CSequenceOfCoordinates", "Sequence of Coordinates")]
+[PropertyRoot("CSequenceOfCoordinates", typeof(SequenceOfCoordinates))]
 public class SequenceOfCoordinates
 {
     [PropertyArray("Coordinates", "Coordinate")]

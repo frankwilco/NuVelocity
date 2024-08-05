@@ -1,6 +1,6 @@
 ﻿namespace NuVelocity.Graphics;
 
-[PropertyRoot("CFrameInfo", "Frame Info")]
+[PropertyRoot("CFrameInfo", typeof(FrameInfo))]
 public class FrameInfo
 {
     [Property("Left")]

@@ -29,6 +29,25 @@ public static class PropertyListSerializer
     private static readonly Type PropertyAttributeType =
         typeof(PropertyAttribute);
 
+    static PropertyListSerializer()
+    {
+        ScanAttributes();
+    }
+
+    public static void ScanAttributes()
+    {
+        IEnumerable<Type> types = Assembly.GetCallingAssembly().GetTypes();
+        foreach (Type type in types)
+        {
+            Attribute? rootAttr = type.GetCustomAttribute(
+                PropertyRootAttributeType);
+            if (rootAttr == null)
+            {
+                continue;
+            }
+        }
+    }
+
     #region Serialization
 
     private static bool WriteProperty(
@@ -221,7 +240,7 @@ public static class PropertyListSerializer
         }
 
         Type type = target.GetType();
-        PropertyListMetadata? classInfo = PropertyListMetadataCache.CreateOrGetFor(type);
+        PropertyListMetadata? classInfo = PropertyListMetadataCache.Get(type);
         if (classInfo == null)
         {
             return false;
@@ -380,7 +399,7 @@ public static class PropertyListSerializer
         }
 
         Type type = target.GetType();
-        PropertyListMetadata? classInfo = PropertyListMetadataCache.CreateOrGetFor(type);
+        PropertyListMetadata? classInfo = PropertyListMetadataCache.Get(type);
         if (classInfo == null)
         {
             return false;

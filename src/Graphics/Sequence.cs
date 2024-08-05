@@ -1,6 +1,6 @@
 ﻿namespace NuVelocity.Graphics;
 
-[PropertyRoot("CSequence", "Sequence")]
+[PropertyRoot("CSequence", typeof(Sequence))]
 public class Sequence
 {
     private bool? _mipmapForNativeVersion;

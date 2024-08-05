@@ -12,23 +12,10 @@ internal static class PropertyListMetadataCache
 
     public static Dictionary<string, PropertyListMetadata> All { get; } = new();
 
-    public static PropertyListMetadata? CreateOrGetFor(Type type)
+    private static PropertyListMetadata GetMetadata(
+        Type type, PropertyRootAttribute rootAttr)
     {
-        string typeName = type.FullName ?? type.Name;
-        if (All.ContainsKey(typeName))
-        {
-            return All[typeName];
-        }
-
-        PropertyRootAttribute? rootAttr =
-            type.GetCustomAttribute<PropertyRootAttribute>();
-        if (rootAttr == null)
-        {
-            return null;
-        }
-
-        PropertyListMetadata classInfo = new(rootAttr);
-
+        PropertyListMetadata classInfo = new(type, rootAttr);
         foreach (PropertyInfo propInfo in type.GetProperties(kSearchFlags))
         {
             var propAttr = propInfo.GetCustomAttribute<PropertyAttribute>();
@@ -41,12 +28,71 @@ internal static class PropertyListMetadataCache
             classInfo.PropertyInfoCache[propAttr.Name] = propInfo;
         }
 
-        lock (All)
-        {
-            All[typeName] = classInfo;
-        }
-
         return classInfo;
     }
 
+    public static PropertyListMetadata? Get(Type key)
+    {
+        PropertyRootAttribute? rootAttr =
+            key.GetCustomAttribute<PropertyRootAttribute>();
+        if (rootAttr == null)
+        {
+            return null;
+        }
+
+        bool hasEntry = All.TryGetValue(
+            rootAttr.ClassName, out PropertyListMetadata? value);
+        if (hasEntry)
+        {
+            return value;
+        }
+        return GetMetadata(key, rootAttr);
+    }
+
+    public static PropertyListMetadata? Get(string key)
+    {
+        All.TryGetValue(key, out PropertyListMetadata? value);
+        return value;
+    }
+
+    public static void Add(
+        Type type,
+        PropertyRootAttribute rootAttr,
+        bool replaceExisting = false)
+    {
+        if (type == null)
+        {
+            throw new ArgumentNullException(nameof(type));
+        }
+        if (rootAttr == null)
+        {
+            throw new ArgumentNullException(nameof(rootAttr));
+        }
+
+        // Don't do anything if we shouldn't replace existing entries.
+        if (All.ContainsKey(rootAttr.ClassName) && !replaceExisting)
+        {
+            return;
+        }
+
+        PropertyListMetadata classInfo = GetMetadata(type, rootAttr);
+
+        lock (All)
+        {
+            All[rootAttr.ClassName] = classInfo;
+        }
+    }
+
+    public static void Add(Type type, bool replaceExisting = false)
+    {
+        PropertyRootAttribute? rootAttr =
+            type.GetCustomAttribute<PropertyRootAttribute>();
+        if (rootAttr == null)
+        {
+            throw new ArgumentException(
+                "Property root attribute is missing from type to be cached.");
+        }
+
+        Add(type, rootAttr, replaceExisting);
+    }
 }

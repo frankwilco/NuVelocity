@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace NuVelocity.Graphics;
 
-[PropertyRoot("CPaletteHolder", "Palette")]
+[PropertyRoot("CPaletteHolder", typeof(PaletteHolder))]
 public class PaletteHolder
 {
 }

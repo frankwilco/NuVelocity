@@ -3,7 +3,7 @@
 namespace NuVelocity.Graphics;
 
 // TODO: check default values.
-[PropertyRoot("CFont", "Font")]
+[PropertyRoot("CFont", typeof(Font))]
 public class Font
 {
     [Property("Font Family", defaultValue: "Resources/Fonts/TRUE TYPES/!default.ttf")]
