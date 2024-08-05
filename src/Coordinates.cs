@@ -1,6 +1,6 @@
 ﻿namespace NuVelocity;
 
-[PropertyRoot("CCoordinates", typeof(Coordinates))]
+[PropertyRoot("NVCoordinates", typeof(Coordinates))]
 public class Coordinates : IPropertyListSerializable
 {
     public int X { get; set; }
