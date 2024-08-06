@@ -10,13 +10,9 @@ public sealed class PropertyRootAttribute : Attribute
     public PropertyRootAttribute(
         string className,
         Type type,
-        bool noCache = false)
+        bool cacheClassName = true)
     {
         ClassName = className;
-        if (noCache)
-        {
-            return;
-        }
-        PropertyListMetadataCache.Add(type, this, false);
+        PropertyListMetadataCache.Add(type, this, cacheClassName);
     }
 }

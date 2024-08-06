@@ -10,7 +10,9 @@ internal static class PropertyListMetadataCache
         BindingFlags.Instance |
         BindingFlags.Static;
 
-    public static Dictionary<string, PropertyListMetadata> All { get; } = new();
+    public static Dictionary<string, PropertyListMetadata> ByName { get; } = new();
+
+    public static Dictionary<string, PropertyListMetadata> ByFqn { get; } = new();
 
     private static PropertyListMetadata GetMetadata(
         Type type, PropertyRootAttribute rootAttr)
@@ -33,32 +35,33 @@ internal static class PropertyListMetadataCache
 
     public static PropertyListMetadata? Get(Type key)
     {
+        string typeFqn = key.FullName ?? key.Name;
+        bool hasEntry = ByFqn.TryGetValue(
+            typeFqn, out PropertyListMetadata? value);
+        if (hasEntry)
+        {
+            return value;
+        }
+
         PropertyRootAttribute? rootAttr =
             key.GetCustomAttribute<PropertyRootAttribute>();
         if (rootAttr == null)
         {
             return null;
         }
-
-        bool hasEntry = All.TryGetValue(
-            rootAttr.ClassName, out PropertyListMetadata? value);
-        if (hasEntry)
-        {
-            return value;
-        }
         return GetMetadata(key, rootAttr);
     }
 
     public static PropertyListMetadata? Get(string key)
     {
-        All.TryGetValue(key, out PropertyListMetadata? value);
+        ByName.TryGetValue(key, out PropertyListMetadata? value);
         return value;
     }
 
     public static void Add(
         Type type,
         PropertyRootAttribute rootAttr,
-        bool replaceExisting = false)
+        bool cacheClassName = true)
     {
         if (type == null)
         {
@@ -69,21 +72,33 @@ internal static class PropertyListMetadataCache
             throw new ArgumentNullException(nameof(rootAttr));
         }
 
-        // Don't do anything if we shouldn't replace existing entries.
-        if (All.ContainsKey(rootAttr.ClassName) && !replaceExisting)
+        string typeFqn = type.FullName ?? type.Name;
+        bool hasFqnEntry = ByFqn.ContainsKey(typeFqn);
+        if (!cacheClassName && hasFqnEntry)
         {
             return;
         }
 
         PropertyListMetadata classInfo = GetMetadata(type, rootAttr);
 
-        lock (All)
+        if (cacheClassName)
         {
-            All[rootAttr.ClassName] = classInfo;
+            lock (ByName)
+            {
+                ByName[rootAttr.ClassName] = classInfo;
+            }
+        }
+
+        if (!hasFqnEntry)
+        {
+            lock (ByFqn)
+            {
+                ByFqn[typeFqn] = classInfo;
+            }
         }
     }
 
-    public static void Add(Type type, bool replaceExisting = false)
+    public static void Add(Type type, bool cacheClassName = true)
     {
         PropertyRootAttribute? rootAttr =
             type.GetCustomAttribute<PropertyRootAttribute>();
@@ -93,6 +108,6 @@ internal static class PropertyListMetadataCache
                 "Property root attribute is missing from type to be cached.");
         }
 
-        Add(type, rootAttr, replaceExisting);
+        Add(type, rootAttr, cacheClassName);
     }
 }
