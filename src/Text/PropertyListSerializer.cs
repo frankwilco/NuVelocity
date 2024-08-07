@@ -51,14 +51,13 @@ public static class PropertyListSerializer
     #region Serialization
 
     private static bool WriteProperty(
-        PropertyInfo prop,
-        PropertyAttribute propAttr,
+        PropertyMetadataInfo metaInfo,
         StringBuilder builder,
         object target,
         int depth,
         bool isCompact = false)
     {
-        object? propValue = prop.GetValue(target);
+        object? propValue = metaInfo.PropertyInfo.GetValue(target);
         // If we're supposed to ignore empty properties, return early.
         if (isCompact && propValue == null)
         {
@@ -67,23 +66,23 @@ public static class PropertyListSerializer
 
         // Write property name.
         builder.Append('\t', depth + 1);
-        builder.Append($"{propAttr.Name}=");
+        builder.Append($"{metaInfo.Attribute.Name}=");
 
         // Write property value, if available.
         if (propValue == null)
         {
             // Return early if there's no provided default value.
-            if (propAttr.DefaultValue == null)
+            if (metaInfo.Attribute.DefaultValue == null)
             {
                 builder.AppendLine();
                 return true;
             }
-            propValue = propAttr.DefaultValue;
+            propValue = metaInfo.Attribute.DefaultValue;
         }
 
         // 1: Write the value's properties if it's marked with the
         // property root attribute.
-        Type propertyType = prop.PropertyType;
+        Type propertyType = metaInfo.PropertyInfo.PropertyType;
         Type? underlyingType = Nullable.GetUnderlyingType(propertyType);
         if (underlyingType != null)
         {
@@ -130,7 +129,7 @@ public static class PropertyListSerializer
         {
             ICollection listValue = (ICollection)propValue;
             WritePropertyArrayList(
-                propAttr,
+                metaInfo.Attribute,
                 builder,
                 depth,
                 isCompact,
@@ -143,7 +142,7 @@ public static class PropertyListSerializer
         {
             Array arrayValue = (Array)propValue;
             WritePropertyArrayList(
-                propAttr,
+                metaInfo.Attribute,
                 builder,
                 depth,
                 isCompact,
@@ -262,20 +261,18 @@ public static class PropertyListSerializer
         int dynamicIndex = builder.Length;
 
         // Iterate through all properties.
-        foreach (var propAttr in classInfo.Properties.Values)
+        foreach (var metaInfo in classInfo.Properties.Values)
         {
             // Ignore properties without the property attribute.
-            if (propAttr == null)
+            if (metaInfo == null)
             {
                 continue;
             }
 
-            PropertyInfo prop = classInfo.PropertyInfoCache[propAttr.Name];
-            if (classInfo.ShouldSerializeMethods.ContainsKey(propAttr.Name))
+            if (metaInfo.ShouldSerializeMethodInfo != null)
             {
-                MethodInfo shouldSerializeMethod =
-                    classInfo.ShouldSerializeMethods[propAttr.Name];
-                bool? value = (bool?)shouldSerializeMethod.Invoke(target, null);
+                bool? value = (bool?)metaInfo.ShouldSerializeMethodInfo
+                    .Invoke(target, null);
                 if (!value.GetValueOrDefault(true))
                 {
 #if NV_LOG
@@ -285,18 +282,17 @@ public static class PropertyListSerializer
                 }
             }
 
-            if (propAttr.IsDynamic)
+            if (metaInfo.Attribute.IsDynamic)
             {
                 if (WriteProperty(
-                    prop, propAttr, builderDynamic, target, depth + 1, true))
+                    metaInfo, builderDynamic, target, depth + 1, true))
                 {
                     dynamicCount++;
                 }
                 continue;
             }
 
-            WriteProperty(
-                prop, propAttr, builder, target, depth, isCompact);
+            WriteProperty(metaInfo, builder, target, depth, isCompact);
         }
 
         if (dynamicCount > 0)
@@ -447,8 +443,8 @@ public static class PropertyListSerializer
                 }
 
                 // Look for the property's info associated with the class.
-                classInfo.PropertyInfoCache.TryGetValue(pair.Key, out PropertyInfo? propInfo);
-                if (propInfo == null)
+                classInfo.Properties.TryGetValue(pair.Key, out PropertyMetadataInfo? metaInfo);
+                if (metaInfo == null)
                 {
 #if NV_LOG
                     Console.WriteLine($"Found unknown property pair: {line}");
@@ -457,19 +453,7 @@ public static class PropertyListSerializer
                     continue;
                 }
 
-                classInfo.Properties.TryGetValue(pair.Key, out PropertyAttribute? propAttr);
-                if (propAttr == null)
-                {
-                    string message =
-                        $"Missing property attribute for: {propInfo.Name}";
-#if NV_LOG
-                    Console.WriteLine(message);
-#endif
-#if DEBUG
-                    throw new SerializationException(message);
-#endif
-                }
-
+                PropertyInfo propInfo = metaInfo.PropertyInfo;
                 Type? propType = propInfo.PropertyType;
                 // Get the underlying type if it's nullable.
                 if (propType.IsGenericType &&
@@ -490,7 +474,7 @@ public static class PropertyListSerializer
 
                 if (isList || isArray) {
                     PropertyArrayAttribute? propArrayAttr =
-                        propAttr as PropertyArrayAttribute ?? throw new SerializationException(
+                        metaInfo.Attribute as PropertyArrayAttribute ?? throw new SerializationException(
                             $"Missing array property attribute for: {propInfo.Name}");
                     if (isList)
                     {
