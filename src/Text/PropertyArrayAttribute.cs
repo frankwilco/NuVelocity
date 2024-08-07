@@ -1,8 +1,10 @@
-﻿using NuVelocity.Graphics;
+﻿namespace NuVelocity.Text;
 
-namespace NuVelocity.Text;
-
-public class PropertyArrayAttribute : PropertyAttribute
+[AttributeUsage(
+    AttributeTargets.Property | AttributeTargets.Field,
+    Inherited = false,
+    AllowMultiple = false)]
+public class PropertyArrayAttribute : Attribute
 {
     public const string ArrayListID = "Array";
     public const string ArrayAsciiEscapedID = "bytes of binary in ASCII esc";
@@ -14,19 +16,7 @@ public class PropertyArrayAttribute : PropertyAttribute
 
     public string ItemCountName { get; }
 
-    public PropertyArrayAttribute(
-        string name,
-        string? itemName = null,
-        string description = "",
-        bool isEditable = true,
-        bool isDynamic = false,
-        object? defaultValue = null)
-        : base(
-            name,
-            description,
-            isEditable,
-            isDynamic,
-            defaultValue)
+    public PropertyArrayAttribute(string? itemName = null)
     {
         ItemName = itemName
             ?? DefaultItemKey;

@@ -3,7 +3,8 @@
 [PropertyRoot("CSequenceOfCoordinates", typeof(SequenceOfCoordinates))]
 public class SequenceOfCoordinates
 {
-    [PropertyArray("Coordinates", "Coordinate")]
+    [Property("Coordinates")]
+    [PropertyArray("Coordinate")]
     public List<Coordinates> Coordinates { get; set; }
 
     public SequenceOfCoordinates()

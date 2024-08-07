@@ -129,7 +129,7 @@ public static class PropertyListSerializer
         {
             ICollection listValue = (ICollection)propValue;
             WritePropertyArrayList(
-                metaInfo.Attribute,
+                metaInfo,
                 builder,
                 depth,
                 isCompact,
@@ -142,7 +142,7 @@ public static class PropertyListSerializer
         {
             Array arrayValue = (Array)propValue;
             WritePropertyArrayList(
-                metaInfo.Attribute,
+                metaInfo,
                 builder,
                 depth,
                 isCompact,
@@ -166,7 +166,7 @@ public static class PropertyListSerializer
     }
 
     private static void WritePropertyArrayList(
-        PropertyAttribute propAttr,
+        PropertyMetadataInfo metaInfo,
         StringBuilder builder,
         int depth,
         bool isCompact,
@@ -179,7 +179,8 @@ public static class PropertyListSerializer
         builder.AppendLine("{");
 
         // Check if this array is marked by an array property attribute.
-        if (propAttr is PropertyArrayAttribute propArrayAttr)
+        PropertyArrayAttribute? propArrayAttr = metaInfo.ArrayAttribute;
+        if (propArrayAttr != null)
         {
             // Write array element count.
             builder.Append('\t', depth + 2);
@@ -474,7 +475,7 @@ public static class PropertyListSerializer
 
                 if (isList || isArray) {
                     PropertyArrayAttribute? propArrayAttr =
-                        metaInfo.Attribute as PropertyArrayAttribute ?? throw new SerializationException(
+                        metaInfo.ArrayAttribute ?? throw new SerializationException(
                             $"Missing array property attribute for: {propInfo.Name}");
                     if (isList)
                     {

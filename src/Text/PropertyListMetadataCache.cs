@@ -20,12 +20,15 @@ internal static class PropertyListMetadataCache
         PropertyListMetadata classInfo = new(type, rootAttr);
         foreach (PropertyInfo propInfo in type.GetProperties(kSearchFlags))
         {
-            var propAttr = propInfo.GetCustomAttribute<PropertyAttribute>();
+            PropertyAttribute? propAttr =
+                propInfo.GetCustomAttribute<PropertyAttribute>();
             // Ignore properties without the attribute.
             if (propAttr == null)
             {
                 continue;
             }
+            PropertyArrayAttribute? propArrayAttr =
+                propInfo.GetCustomAttribute<PropertyArrayAttribute>();
             MethodInfo? shouldSerializeMethodInfo =
                 type.GetMethod($"ShouldSerialize{propInfo.Name}",
                 kSearchFlags);
@@ -36,7 +39,7 @@ internal static class PropertyListMetadataCache
                     "ShouldSerialize method should return a bool.");
             }
             classInfo.Properties[propAttr.Name] = new(
-                propAttr, propInfo, shouldSerializeMethodInfo);
+                propAttr, propArrayAttr, propInfo, shouldSerializeMethodInfo);
         }
 
         return classInfo;

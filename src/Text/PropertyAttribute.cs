@@ -1,6 +1,4 @@
-﻿using NuVelocity.Graphics;
-
-namespace NuVelocity.Text;
+﻿namespace NuVelocity.Text;
 
 [AttributeUsage(
     AttributeTargets.Property | AttributeTargets.Field,

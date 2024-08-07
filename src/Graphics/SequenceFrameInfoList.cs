@@ -5,7 +5,8 @@ public class SequenceFrameInfoList
 {
     internal bool HasTextBlitType { get; private set; } = false;
 
-    [PropertyArray("Frame Infos", "Frame Info")]
+    [Property("Frame Infos")]
+    [PropertyArray("Frame Info")]
     public FrameInfo[] Values { get; set; }
 
     [Property("WasRLE")]
