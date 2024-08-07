@@ -1,4 +1,6 @@
-﻿namespace NuVelocity.Text;
+﻿using NuVelocity.Graphics;
+
+namespace NuVelocity.Text;
 
 public class PropertyArrayAttribute : PropertyAttribute
 {
@@ -18,19 +20,13 @@ public class PropertyArrayAttribute : PropertyAttribute
         string description = "",
         bool isEditable = true,
         bool isDynamic = false,
-        bool isTransient = false,
-        object? defaultValue = null,
-        PropertySerializationFlags includeFlags = default,
-        PropertySerializationFlags excludeFlags = default)
+        object? defaultValue = null)
         : base(
             name,
             description,
             isEditable,
             isDynamic,
-            isTransient,
-            defaultValue,
-            includeFlags,
-            excludeFlags)
+            defaultValue)
     {
         ItemName = itemName
             ?? DefaultItemKey;

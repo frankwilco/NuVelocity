@@ -10,6 +10,8 @@ internal class PropertyListMetadata
 
     public Dictionary<string, PropertyInfo> PropertyInfoCache { get; private set; }
 
+    public Dictionary<string, MethodInfo> ShouldSerializeMethods { get; private set; }
+
     public Type Type { get; private set; }
 
     public PropertyListMetadata(Type type, PropertyRootAttribute rootAttribute)
@@ -18,5 +20,6 @@ internal class PropertyListMetadata
         Root = rootAttribute;
         Properties = new();
         PropertyInfoCache = new();
+        ShouldSerializeMethods = new();
     }
 }

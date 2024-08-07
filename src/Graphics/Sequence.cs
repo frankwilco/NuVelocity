@@ -3,14 +3,15 @@
 [PropertyRoot("CSequence", typeof(Sequence))]
 public class Sequence
 {
+    internal bool HasFixedCropColor0Name { get; private set; } = false;
+    internal bool HasDdsSupport { get; private set; } = false;
+    internal bool HasMipmapSupport { get; private set; } = false;
+
     private bool? _mipmapForNativeVersion;
-    private int? _ySort;
-    private string? _pokeAudio;
-    private bool? _editorOnly;
     private bool? _isDds;
     private bool? _needsBuffer;
 
-    public PropertySerializationFlags Flags { get; set; }
+    public ImagePropertyListFormat Format { get; set; }
 
     [Property("Comment",
         isDynamic: true)]
@@ -28,49 +29,21 @@ public class Sequence
 
     // TN: Exclusive to Build In Time and Costume Chaos.
     [Property("Y-Sort",
-        isDynamic: true,
-        includeFlags: PropertySerializationFlags.HasYSort)]
-    public int? YSort
-    {
-        get { return _ySort; }
-        set
-        {
-            _ySort = value;
-            Flags |= PropertySerializationFlags.HasYSort;
-        }
-    }
+        isDynamic: true)]
+    public int? YSort { get; set; }
 
     // TN: Exclusive to Build In Time.
     [Property("Poke Audio",
-        isDynamic: true,
-        includeFlags: PropertySerializationFlags.HasPokeAudio)]
-    public string? PokeAudio
-    {
-        get { return _pokeAudio; }
-        set
-        {
-            _pokeAudio = value;
-            Flags |= PropertySerializationFlags.HasPokeAudio;
-        }
-    }
+        isDynamic: true)]
+    public string? PokeAudio { get; set; }
 
     // TN: Exclusive to Costume Chaos.
     [Property("Editor Only",
-        isDynamic: true,
-        includeFlags: PropertySerializationFlags.HasEditorOnly)]
-    public bool? EditorOnly
-    {
-        get { return _editorOnly; }
-        set
-        {
-            _editorOnly = value;
-            Flags |= PropertySerializationFlags.HasEditorOnly;
-        }
-    }
+        isDynamic: true)]
+    public bool? EditorOnly { get; set; }
 
     [Property("Frames Per Second",
-        defaultValue: 15.0f,
-        excludeFlags: PropertySerializationFlags.ImageFormat1)]
+        defaultValue: 15.0f)]
     public float? FramesPerSecond { get; set; }
 
     [Property("Blit Type",
@@ -86,15 +59,11 @@ public class Sequence
     public int? YOffset { get; set; }
 
     [Property("Use Every",
-        defaultValue: 1,
-        excludeFlags: PropertySerializationFlags.ImageFormat2 |
-            PropertySerializationFlags.ImageFormat1)]
+        defaultValue: 1)]
     public int? UseEvery { get; set; }
 
     [Property("Always Include Last Frame",
-        defaultValue: false,
-        excludeFlags: PropertySerializationFlags.ImageFormat2 |
-            PropertySerializationFlags.ImageFormat1)]
+        defaultValue: false)]
     public bool? AlwaysIncludeLastFrame { get; set; }
 
     [Property("Center Hot Spot",
@@ -102,14 +71,11 @@ public class Sequence
     public bool? CenterHotSpot { get; set; }
 
     [Property("Blended With Black",
-        defaultValue: true,
-        excludeFlags: PropertySerializationFlags.ImageFormat2 |
-            PropertySerializationFlags.ImageFormat1)]
+        defaultValue: true)]
     public bool? BlendedWithBlack { get; set; }
 
     [Property("Crop Color 0",
-        defaultValue: true,
-        includeFlags: PropertySerializationFlags.HasFixedCropColor0Name)]
+        defaultValue: true)]
     internal bool? CropColor0
     {
         get { return CropAlphaChannel; }
@@ -117,15 +83,14 @@ public class Sequence
         {
             if (CropAlphaChannel == null)
             {
-                Flags |= PropertySerializationFlags.HasFixedCropColor0Name;
+                HasFixedCropColor0Name = true; ;
             }
             CropAlphaChannel = value;
         }
     }
 
     [Property("Crop Clor 0",
-        defaultValue: true,
-        excludeFlags: PropertySerializationFlags.HasFixedCropColor0Name)]
+        defaultValue: true)]
     internal bool? CropClor0
     {
         get => CropAlphaChannel;
@@ -139,48 +104,40 @@ public class Sequence
     public bool? Use8BitAlpha { get; set; }
 
     [Property("Run Length Encode",
-        defaultValue: true,
-        excludeFlags: PropertySerializationFlags.ImageFormat2 |
-            PropertySerializationFlags.ImageFormat1)]
+        defaultValue: true)]
     public bool? IsRle { get; set; }
 
     [Property("Do Dither",
-        defaultValue: true,
-        excludeFlags: PropertySerializationFlags.ImageFormat1)]
+        defaultValue: true)]
     public bool? DoDither { get; set; }
 
     // TN: Present in Star Trek Away Team sequence files.
     [Property("Dither",
-        defaultValue: true,
-        includeFlags: PropertySerializationFlags.ImageFormat1)]
+        defaultValue: true)]
     internal bool? Dither
     {
         get { return DoDither; }
         set
         {
             DoDither = value;
-            Flags |= PropertySerializationFlags.ImageFormat1;
+            Format = ImagePropertyListFormat.Format1;
         }
     }
 
     [Property("Loss Less",
-        defaultValue: false,
-        includeFlags: PropertySerializationFlags.ImageFormat2,
-        excludeFlags: PropertySerializationFlags.ImageFormat1)]
+        defaultValue: false)]
     internal bool? LossLess1
     {
         get { return IsLossless; }
         set
         {
             IsLossless = value;
-            Flags |= PropertySerializationFlags.ImageFormat2;
+            Format = ImagePropertyListFormat.Format2;
         }
     }
 
     [Property("Loss Less 2",
-        defaultValue: false,
-        excludeFlags: PropertySerializationFlags.ImageFormat2 |
-            PropertySerializationFlags.ImageFormat1)]
+        defaultValue: false)]
     internal bool? LossLess2
     {
         get => IsLossless;
@@ -190,21 +147,19 @@ public class Sequence
     public bool? IsLossless { get; set; }
 
     [Property("Quality",
-        defaultValue: 65,
-        includeFlags: PropertySerializationFlags.ImageFormat2)]
+        defaultValue: 65)]
     internal int? Quality1
     {
         get { return JpegQuality; }
         set
         {
             JpegQuality = value;
-            Flags |= PropertySerializationFlags.ImageFormat2;
+            Format = ImagePropertyListFormat.Format2;
         }
     }
 
     [Property("Quality2",
-        defaultValue: 65,
-        isTransient: true)]
+        defaultValue: 65)]
     internal int? Quality2
     {
         get => JpegQuality;
@@ -212,10 +167,7 @@ public class Sequence
     }
 
     [Property("JPEG Quality",
-        defaultValue: 80,
-        excludeFlags: PropertySerializationFlags.ImageFormat2 |
-            PropertySerializationFlags.ImageFormat3 |
-            PropertySerializationFlags.ImageFormat1)]
+        defaultValue: 80)]
     internal int? JpegQuality1
     {
         get => JpegQuality;
@@ -223,9 +175,7 @@ public class Sequence
     }
 
     [Property("JPEG Quality 2",
-        defaultValue: 80,
-        excludeFlags: PropertySerializationFlags.ImageFormat2,
-        includeFlags: PropertySerializationFlags.ImageFormat3)]
+        defaultValue: 80)]
     internal int? JpegQuality2
     {
         get { return JpegQuality; }
@@ -233,7 +183,7 @@ public class Sequence
         {
             if (JpegQuality == null)
             {
-                Flags |= PropertySerializationFlags.ImageFormat3;
+                Format = ImagePropertyListFormat.Format3;
             }
             JpegQuality = value;
         }
@@ -241,8 +191,7 @@ public class Sequence
 
     public int? JpegQuality { get; set; }
 
-    [Property("DDS",
-        includeFlags: PropertySerializationFlags.HasDdsSupport)]
+    [Property("DDS")]
     public bool? IsDds
     {
         get { return _isDds; }
@@ -250,14 +199,13 @@ public class Sequence
         {
             if (_isDds == null)
             {
-                Flags |= PropertySerializationFlags.HasDdsSupport;
+                HasDdsSupport = true;
             }
             _isDds = value;
         }
     }
 
-    [Property("Needs Buffer",
-        includeFlags: PropertySerializationFlags.HasDdsSupport)]
+    [Property("Needs Buffer")]
     public bool? NeedsBuffer
     {
         get { return _needsBuffer; }
@@ -265,7 +213,7 @@ public class Sequence
         {
             if (_needsBuffer == null)
             {
-                Flags |= PropertySerializationFlags.HasDdsSupport;
+                HasDdsSupport = true;
             }
             _needsBuffer = value;
         }
@@ -274,9 +222,7 @@ public class Sequence
     // TN: Present in Swarm Gold, Ricochet Infinity HD, Big Kahuna Reef 3,
     // Build In Time, and Costume Chaos.
     [Property("Mipmap For Native Version",
-        defaultValue: true,
-        includeFlags: PropertySerializationFlags.HasMipmapSupport |
-            PropertySerializationFlags.HasDdsSupport)]
+        defaultValue: true)]
     public bool? MipmapForNativeVersion
     {
         get { return _mipmapForNativeVersion; }
@@ -284,19 +230,122 @@ public class Sequence
         {
             if (_mipmapForNativeVersion == null)
             {
-                Flags |= PropertySerializationFlags.HasMipmapSupport;
+                HasMipmapSupport = true;
             }
             _mipmapForNativeVersion = value;
         }
     }
 
-    public Sequence(PropertySerializationFlags flags)
+    public Sequence(ImagePropertyListFormat format)
     {
-        Flags = flags;
+        Format = format;
     }
 
     public Sequence()
-        : this(PropertySerializationFlags.None)
+        : this(ImagePropertyListFormat.Format3)
     {
     }
+
+    #region Serializer methods
+
+    private bool ShouldSerializeFramesPerSecond()
+    {
+        return Format != ImagePropertyListFormat.Format1;
+    }
+
+    private bool ShouldSerializeUseEvery()
+    {
+        return Format == ImagePropertyListFormat.Format3;
+    }
+
+    private bool ShouldSerializeAlwaysIncludeLastFrame()
+    {
+        return Format == ImagePropertyListFormat.Format3;
+    }
+
+    private bool ShouldSerializeBlendedWithBlack()
+    {
+        return Format == ImagePropertyListFormat.Format3;
+    }
+
+    private bool ShouldSerializeCropColor0()
+    {
+        return HasFixedCropColor0Name;
+    }
+
+    private bool ShouldSerializeCropClor0()
+    {
+        return !HasFixedCropColor0Name;
+    }
+
+    private bool ShouldSerializeIsRle()
+    {
+        return Format == ImagePropertyListFormat.Format3;
+    }
+
+    private bool ShouldSerializeDoDither()
+    {
+        return Format != ImagePropertyListFormat.Format1;
+    }
+
+    private bool ShouldSerializeDither()
+    {
+        return Format == ImagePropertyListFormat.Format1;
+    }
+
+    private bool ShouldSerializeLossLess1()
+    {
+        return Format == ImagePropertyListFormat.Format2;
+    }
+
+    private bool ShouldSerializeLossLess2()
+    {
+        return Format == ImagePropertyListFormat.Format3;
+    }
+
+    private bool ShouldSerializeQuality1()
+    {
+        return Format == ImagePropertyListFormat.Format2;
+    }
+
+    private static bool ShouldSerializeQuality2()
+    {
+        return false;
+    }
+
+    private static bool ShouldSerializeJpegQuality1()
+    {
+        return false;
+    }
+
+    private bool ShouldSerializeJpegQuality2()
+    {
+        return Format == ImagePropertyListFormat.Format3;
+    }
+
+    private bool ShouldSerializeIsDds()
+    {
+        return HasDdsSupport;
+    }
+
+    private bool ShouldSerializeNeedsBuffer()
+    {
+        return HasDdsSupport;
+    }
+
+    private bool ShouldSerializeMipmapForNativeVersion()
+    {
+        return HasDdsSupport || HasMipmapSupport;
+    }
+
+    internal string ToDebugString()
+    {
+        return "[" +
+            $"{nameof(HasFixedCropColor0Name)}:{HasFixedCropColor0Name}," +
+            $"{nameof(HasDdsSupport)}:{HasDdsSupport}," +
+            $"{nameof(HasMipmapSupport)}:{HasMipmapSupport}" +
+            "]";
+    }
+
+    #endregion
 }

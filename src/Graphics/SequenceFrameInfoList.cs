@@ -3,6 +3,8 @@
 [PropertyRoot("CSequenceFrameInfoList", typeof(SequenceFrameInfoList))]
 public class SequenceFrameInfoList
 {
+    internal bool HasTextBlitType { get; private set; } = false;
+
     [PropertyArray("Frame Infos", "Frame Info")]
     public FrameInfo[] Values { get; set; }
 
@@ -12,16 +14,24 @@ public class SequenceFrameInfoList
     [Property("Flags")]
     public SequenceFlags Flags { get; set; }
 
-    [Property("BlitType",
-        excludeFlags: PropertySerializationFlags.HasTextBlitType)]
+    [Property("BlitType")]
     public int BlitType { get; set; }
 
-    [Property("Blit Type",
-        includeFlags: PropertySerializationFlags.HasTextBlitType)]
+    [Property("Blit Type")]
     public BlitType TextBlitType
     {
-        get { return (BlitType)BlitType; }
-        set { BlitType = (int)value; }
+        get
+        {
+            if (!HasTextBlitType)
+            {
+                HasTextBlitType = true;
+            }
+            return (BlitType)BlitType;
+        }
+        set
+        {
+            BlitType = (int)value;
+        }
     }
 
     [Property("FPS")]
@@ -52,4 +62,18 @@ public class SequenceFrameInfoList
             BlitType, revision);
         sequence.FramesPerSecond ??= FramesPerSecond;
     }
+
+    #region Serializer methods
+
+    private bool ShouldSerializeBlitType()
+    {
+        return !HasTextBlitType;
+    }
+
+    private bool ShouldSerializeTextBlitType()
+    {
+        return HasTextBlitType;
+    }
+
+    #endregion
 }

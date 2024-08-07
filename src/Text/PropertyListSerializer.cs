@@ -56,12 +56,11 @@ public static class PropertyListSerializer
         StringBuilder builder,
         object target,
         int depth,
-        PropertySerializationFlags source,
-        bool ignoreNull = false)
+        bool isCompact = false)
     {
         object? propValue = prop.GetValue(target);
         // If we're supposed to ignore empty properties, return early.
-        if (ignoreNull && propValue == null)
+        if (isCompact && propValue == null)
         {
             return false;
         }
@@ -92,7 +91,7 @@ public static class PropertyListSerializer
         }
         if (propertyType.IsDefined(PropertyRootAttributeType))
         {
-            if (!WritePropertyList(builder, propValue, depth + 1, source))
+            if (!WritePropertyList(builder, propValue, depth + 1, isCompact))
             {
                 builder.AppendLine();
             }
@@ -134,7 +133,7 @@ public static class PropertyListSerializer
                 propAttr,
                 builder,
                 depth,
-                source,
+                isCompact,
                 listValue,
                 listValue.Count);
         }
@@ -147,7 +146,7 @@ public static class PropertyListSerializer
                 propAttr,
                 builder,
                 depth,
-                source,
+                isCompact,
                 arrayValue,
                 arrayValue.Length);
         }
@@ -171,7 +170,7 @@ public static class PropertyListSerializer
         PropertyAttribute propAttr,
         StringBuilder builder,
         int depth,
-        PropertySerializationFlags source,
+        bool isCompact,
         IEnumerable collection,
         int collectionLength)
     {
@@ -194,7 +193,7 @@ public static class PropertyListSerializer
                 builder.Append($"{propArrayAttr.ItemName}=");
                 // Null elements are still represented. They
                 // serialize as empty (CObject=).
-                if (!WritePropertyList(builder, item, depth + 3, source))
+                if (!WritePropertyList(builder, item, depth + 3, isCompact))
                 {
                     builder.AppendLine();
                 }
@@ -224,7 +223,7 @@ public static class PropertyListSerializer
         StringBuilder builder,
         object target,
         int depth,
-        PropertySerializationFlags flags)
+        bool isCompact = false)
     {
         if (builder is null)
         {
@@ -272,46 +271,32 @@ public static class PropertyListSerializer
             }
 
             PropertyInfo prop = classInfo.PropertyInfoCache[propAttr.Name];
-
-            bool hasExclusionMatch = (flags & propAttr.ExcludeFlags) > 0;
-            if (hasExclusionMatch || propAttr.IsTransient)
+            if (classInfo.ShouldSerializeMethods.ContainsKey(propAttr.Name))
             {
+                MethodInfo shouldSerializeMethod =
+                    classInfo.ShouldSerializeMethods[propAttr.Name];
+                bool? value = (bool?)shouldSerializeMethod.Invoke(target, null);
+                if (!value.GetValueOrDefault(true))
+                {
 #if NV_LOG
-                Console.WriteLine(
-                    $"Skipping property {prop.Name} " +
-                    $"[curr: {flags}, " +
-                    $"exclude flags: {propAttr.ExcludeFlags}]");
+                    Console.WriteLine($"Skipping property {prop.Name}");
 #endif
-                continue;
-            }
-
-            bool hasInclusionMatch =
-                propAttr.IncludeFlags == PropertySerializationFlags.None ||
-                ((flags & propAttr.IncludeFlags) > 0);
-            if (!hasInclusionMatch)
-            {
-#if NV_LOG
-                Console.WriteLine(
-                    $"Skipping property {prop.Name} " +
-                    $"[curr: {flags}, " +
-                    $"include starting: {propAttr.IncludeFlags}]");
-#endif
-                continue;
+                    continue;
+                }
             }
 
             if (propAttr.IsDynamic)
             {
                 if (WriteProperty(
-                    prop, propAttr, builderDynamic, target, depth + 1, flags, true))
+                    prop, propAttr, builderDynamic, target, depth + 1, true))
                 {
                     dynamicCount++;
                 }
                 continue;
             }
 
-            bool isCompact = (flags & PropertySerializationFlags.Compact) == PropertySerializationFlags.Compact;
             WriteProperty(
-                prop, propAttr, builder, target, depth, flags, isCompact);
+                prop, propAttr, builder, target, depth, isCompact);
         }
 
         if (dynamicCount > 0)
@@ -334,29 +319,9 @@ public static class PropertyListSerializer
     }
 
     public static bool Serialize(
-        TextWriter writer,
-        object target,
-        PropertySerializationFlags sourceFilter = PropertySerializationFlags.None)
-    {
-        if (writer is null)
-        {
-            throw new ArgumentNullException(nameof(writer));
-        }
-        if (target is null)
-        {
-            throw new ArgumentNullException(nameof(target));
-        }
-
-        StringBuilder builder = new();
-        bool result = WritePropertyList(builder, target, 0, sourceFilter);
-        writer.Write(builder.ToString());
-        return result;
-    }
-
-    public static bool Serialize(
         Stream stream,
         object target,
-        PropertySerializationFlags sourceFilter = PropertySerializationFlags.None)
+        bool isCompact = false)
     {
         if (stream is null)
         {
@@ -368,7 +333,10 @@ public static class PropertyListSerializer
         }
 
         using StreamWriter writer = new(stream);
-        return Serialize(writer, target, sourceFilter);
+        StringBuilder builder = new();
+        bool result = WritePropertyList(builder, target, 0, isCompact);
+        writer.Write(builder.ToString());
+        return result;
     }
 
     #endregion
@@ -804,6 +772,11 @@ public static class PropertyListSerializer
                 Type instanceType =
                     PropertyListMetadataCache.Get(propValueText)?.Type
                     ?? propType;
+                if (propType.IsAbstract)
+                {
+                    throw new SerializationException(
+                        "Cannot deserialize to an abstract type.");
+                }
                 propValue = Activator.CreateInstance(instanceType);
                 if (propValue == null)
                 {

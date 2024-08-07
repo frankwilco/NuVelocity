@@ -3,12 +3,14 @@
 [PropertyRoot("CStandAloneFrame", typeof(Frame))]
 public class Frame
 {
+    internal bool HasMipmapSupport { get; private set; } = false;
+
     private bool? _mipmapForNativeVersion;
     private int? _finalBitDepth;
     private bool? _removeBlackBlending;
     private bool? _removeDeadAlpha;
 
-    public PropertySerializationFlags Flags { get; set; }
+    public ImagePropertyListFormat Format { get; set; }
 
     [Property("Comment",
         isDynamic: true)]
@@ -23,8 +25,7 @@ public class Frame
     public bool? IsRle { get; set; }
 
     [Property("RLE All Copy",
-        defaultValue: false,
-        excludeFlags: PropertySerializationFlags.ImageFormat1)]
+        defaultValue: false)]
     public bool? IsRleAllCopy { get; set; }
 
     [Property("Crop Color 0",
@@ -37,45 +38,40 @@ public class Frame
     public bool? CropAlphaChannel { get; set; }
 
     [Property("Do Dither",
-        defaultValue: true,
-        excludeFlags: PropertySerializationFlags.ImageFormat1)]
+        defaultValue: true)]
     public bool? DoDither { get; set; }
 
     // TN: Present in some Ricochet Xtreme frame files.
     [Property("Dither",
-        defaultValue: true,
-        includeFlags: PropertySerializationFlags.ImageFormat1)]
+        defaultValue: true)]
     internal bool? Dither
     {
         get { return DoDither; }
         set
         {
             DoDither = value;
-            Flags |= PropertySerializationFlags.ImageFormat1;
+            Format = ImagePropertyListFormat.Format1;
         }
     }
 
     [Property("Change Bit Depth",
-        defaultValue: true,
-        excludeFlags: PropertySerializationFlags.ImageFormat2)]
+        defaultValue: true)]
     public bool? ChangeBitDepth { get; set; }
 
     [Property("Loss Less",
-        defaultValue: false,
-        includeFlags: PropertySerializationFlags.ImageFormat2)]
+        defaultValue: false)]
     internal bool? LossLess1
     {
         get { return IsLossless; }
         set
         {
             IsLossless = value;
-            Flags |= PropertySerializationFlags.ImageFormat2;
+            Format = ImagePropertyListFormat.Format2;
         }
     }
 
     [Property("Loss Less 2",
-        defaultValue: false,
-        excludeFlags: PropertySerializationFlags.ImageFormat2)]
+        defaultValue: false)]
     internal bool? LossLess2 {
         get => IsLossless;
         set => IsLossless = value;
@@ -84,23 +80,20 @@ public class Frame
     public bool? IsLossless { get; set; }
 
     [Property("Quality",
-        defaultValue: 80,
-        includeFlags: PropertySerializationFlags.ImageFormat2)]
+        defaultValue: 80)]
     internal int? Quality1
     {
         get { return JpegQuality; }
         set
         {
             JpegQuality = value;
-            Flags |= PropertySerializationFlags.ImageFormat2;
+            Format = ImagePropertyListFormat.Format2;
         }
     }
 
     // TN: Present in some Ricochet Lost Worlds frame files.
     [Property("JPEG Quality",
-        defaultValue: 80,
-        excludeFlags: PropertySerializationFlags.ImageFormat2 |
-            PropertySerializationFlags.ImageFormat3)]
+        defaultValue: 80)]
     internal int? JpegQuality1
     {
         get => JpegQuality;
@@ -108,9 +101,7 @@ public class Frame
     }
 
     [Property("JPEG Quality 2",
-        defaultValue: 80,
-        excludeFlags: PropertySerializationFlags.ImageFormat2,
-        includeFlags: PropertySerializationFlags.ImageFormat3)]
+        defaultValue: 80)]
     internal int? JpegQuality2
     {
         get { return JpegQuality; }
@@ -118,7 +109,7 @@ public class Frame
         {
             if (JpegQuality == null)
             {
-                Flags |= PropertySerializationFlags.ImageFormat3;
+                Format = ImagePropertyListFormat.Format3;
             }
             JpegQuality = value;
         }
@@ -127,20 +118,15 @@ public class Frame
     public int? JpegQuality { get; set; }
 
     [Property("Center Hot Spot",
-        defaultValue: false,
-        excludeFlags: PropertySerializationFlags.ImageFormat1)]
+        defaultValue: false)]
     public bool? CenterHotSpot { get; set; }
 
     [Property("Blended With Black",
-        defaultValue: true,
-        excludeFlags: PropertySerializationFlags.ImageFormat2 |
-            PropertySerializationFlags.ImageFormat1)]
+        defaultValue: true)]
     public bool? BlendedWithBlack { get; set; }
 
     [Property("Remove Dead Alpha",
-        defaultValue: true,
-        includeFlags: PropertySerializationFlags.ImageFormat2,
-        excludeFlags: PropertySerializationFlags.ImageFormat1)]
+        defaultValue: true)]
     public bool? RemoveDeadAlpha
     {
         get { return _removeDeadAlpha; }
@@ -148,16 +134,14 @@ public class Frame
         {
             if (_removeDeadAlpha == null)
             {
-                Flags |= PropertySerializationFlags.ImageFormat2;
+                Format = ImagePropertyListFormat.Format2;
             }
             _removeDeadAlpha = value;
         }
     }
 
     [Property("Remove Black Blending",
-        defaultValue: true,
-        includeFlags: PropertySerializationFlags.ImageFormat2,
-        excludeFlags: PropertySerializationFlags.ImageFormat1)]
+        defaultValue: true)]
     public bool? RemoveBlackBlending
     {
         get { return _removeBlackBlending; }
@@ -165,21 +149,18 @@ public class Frame
         {
             if (_removeBlackBlending == null)
             {
-                Flags |= PropertySerializationFlags.ImageFormat2;
+                Format = ImagePropertyListFormat.Format2;
             }
             _removeBlackBlending = value;
         }
     }
 
     [Property("Load Black Biased",
-        defaultValue: false,
-        excludeFlags: PropertySerializationFlags.ImageFormat1)]
+        defaultValue: false)]
     public bool? LoadBlackBiased { get; set; }
 
     [Property("Final Bit Depth",
-        defaultValue: 0,
-        includeFlags: PropertySerializationFlags.ImageFormat2,
-        excludeFlags: PropertySerializationFlags.ImageFormat1)]
+        defaultValue: 0)]
     public int? FinalBitDepth
     {
         get { return _finalBitDepth; }
@@ -187,20 +168,18 @@ public class Frame
         {
             if (_finalBitDepth == null)
             {
-                Flags |= PropertySerializationFlags.ImageFormat2;
+                Format = ImagePropertyListFormat.Format2;
             }
             _finalBitDepth = value;
         }
     }
 
     [Property("Blit Type",
-        defaultValue: Graphics.BlitType.TransparentMask,
-        excludeFlags: PropertySerializationFlags.ImageFormat1)]
+        defaultValue: Graphics.BlitType.TransparentMask)]
     public BlitType? BlitType { get; set; }
 
     [Property("Mipmap For Native Version",
-        defaultValue: true,
-        includeFlags: PropertySerializationFlags.HasMipmapSupport)]
+        defaultValue: true)]
     public bool? MipmapForNativeVersion
     {
         get { return _mipmapForNativeVersion; }
@@ -208,19 +187,114 @@ public class Frame
         {
             if (_mipmapForNativeVersion == null)
             {
-                Flags |= PropertySerializationFlags.HasMipmapSupport;
+                HasMipmapSupport = true;
             }
             _mipmapForNativeVersion = value;
         }
     }
 
-    public Frame(PropertySerializationFlags flags)
+    public Frame(ImagePropertyListFormat format)
     {
-        Flags = flags;
+        Format = format;
     }
 
     public Frame()
-        : this(PropertySerializationFlags.None)
+        : this(ImagePropertyListFormat.Format3)
     {
     }
+
+    #region Serializer methods
+
+    private bool ShouldSerializeIsRleAllCopy()
+    {
+        return Format != ImagePropertyListFormat.Format1;
+    }
+
+    private bool ShouldSerializeDoDither()
+    {
+        return Format != ImagePropertyListFormat.Format1;
+    }
+
+    private bool ShouldSerializeDither()
+    {
+        return Format == ImagePropertyListFormat.Format1;
+    }
+
+    private bool ShouldSerializeChangeBitDepth()
+    {
+        return Format != ImagePropertyListFormat.Format2;
+    }
+    private bool ShouldSerializeLossLess1()
+    {
+        return Format == ImagePropertyListFormat.Format2;
+    }
+
+    private bool ShouldSerializeLossLess2()
+    {
+        return Format == ImagePropertyListFormat.Format3;
+    }
+
+    private bool ShouldSerializeQuality1()
+    {
+        return Format == ImagePropertyListFormat.Format2;
+    }
+
+    private static bool ShouldSerializeJpegQuality1()
+    {
+        return false;
+    }
+
+    private bool ShouldSerializeJpegQuality2()
+    {
+        return Format == ImagePropertyListFormat.Format3;
+    }
+
+    private bool ShouldSerializeCenterHotSpot()
+    {
+        return Format != ImagePropertyListFormat.Format1;
+    }
+
+    private bool ShouldSerializeBlendedWithBlack()
+    {
+        return Format == ImagePropertyListFormat.Format3;
+    }
+
+    private bool ShouldSerializeRemoveDeadAlpha()
+    {
+        return Format == ImagePropertyListFormat.Format2;
+    }
+
+    private bool ShouldSerializeRemoveBlackBlending()
+    {
+        return Format == ImagePropertyListFormat.Format2;
+    }
+
+    private bool ShouldSerializeLoadBlackBiased()
+    {
+        return Format != ImagePropertyListFormat.Format1;
+    }
+
+    private bool ShouldSerializeFinalBitDepth()
+    {
+        return Format == ImagePropertyListFormat.Format2;
+    }
+
+    private bool ShouldSerializeBlitType()
+    {
+        return Format != ImagePropertyListFormat.Format1;
+    }
+
+    private bool ShouldSerializeMipmapForNativeVersion()
+    {
+        return HasMipmapSupport;
+    }
+
+    internal string ToDebugString()
+    {
+        return "[" +
+            $"{nameof(HasMipmapSupport)}:{HasMipmapSupport}" +
+            "]";
+    }
+
+    #endregion
 }

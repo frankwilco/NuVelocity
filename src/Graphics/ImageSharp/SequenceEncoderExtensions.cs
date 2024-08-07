@@ -60,7 +60,7 @@ public static class SequenceEncoderExtensions
         Image? spriteAtlas = null;
         if (encoder.IsHD)
         {
-            if (!encoder.IsDds)
+            if (!encoder.Sequence.HasDdsSupport)
             {
                 ThrowIfSpriteAtlasDimensionsAreZero(encoder);
                 spriteAtlas = SlisHelper.LoadInterleavedRgba8888Image(
@@ -85,7 +85,7 @@ public static class SequenceEncoderExtensions
         }
 
         // Return early if there's no need to process the image further.
-        if (spriteAtlas == null && !encoder.IsDds)
+        if (spriteAtlas == null && !encoder.Sequence.HasDdsSupport)
         {
             return null;
         }
@@ -151,7 +151,7 @@ public static class SequenceEncoderExtensions
                 frameInfo.Bottom - frameInfo.Top);
 
             Image image;
-            if (encoder.IsDds)
+            if (encoder.Sequence.HasDdsSupport)
             {
                 int pixels = cropRect.Width * cropRect.Height;
                 byte[] buffer = new byte[pixels];

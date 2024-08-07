@@ -11,15 +11,6 @@ public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
 
     protected Inflater _inflater;
 
-    public bool IsDds
-    {
-        get
-        {
-            return Sequence.Flags.HasFlag(
-                PropertySerializationFlags.HasDdsSupport);
-        }
-    }
-
     public byte? Scan1 { get; protected set; }
 
     public byte? Scan2 { get; protected set; }
@@ -93,21 +84,10 @@ public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
 
         _hasProperties =
             PropertyListSerializer.Deserialize(ListData, Sequence);
-        // XXX: Wik and earlier don't provide all the information in
-        // the sequence property list. Assume that we're lacking info
-        // if JPEG quality is set to 0 or if FPS values don't match.
-        if (_hasProperties)
-        {
-            if (Sequence.FramesPerSecond == null ||
-                Sequence.JpegQuality == null)
-            {
-                Sequence.Flags |= PropertySerializationFlags.Compact;
-            }
-        }
-        else
+        if (!_hasProperties)
         {
             // XXX: Assume legacy format is in use.
-            Sequence.Flags |= PropertySerializationFlags.ImageFormat2;
+            Sequence.Format = ImagePropertyListFormat.Format2;
         }
 
         bool hasFrameInfoList =
@@ -198,7 +178,7 @@ public class Mode3SequenceEncoder : SequenceEncoder, IDisposable
         int embeddedListsSize = reader.ReadInt32();
         ListData = reader.ReadBytes(embeddedListsSize);
 
-        if (IsDds)
+        if (Sequence.HasDdsSupport)
         {
             long distanceToEof =
                 reader.BaseStream.Length - reader.BaseStream.Position;

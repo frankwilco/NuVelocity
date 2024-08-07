@@ -28,6 +28,19 @@ internal static class PropertyListMetadataCache
             }
             classInfo.Properties[propAttr.Name] = propAttr;
             classInfo.PropertyInfoCache[propAttr.Name] = propInfo;
+            MethodInfo? shouldSerializeMethod =
+                type.GetMethod($"ShouldSerialize{propInfo.Name}",
+                kSearchFlags);
+            if (shouldSerializeMethod != null)
+            {
+                if (shouldSerializeMethod.ReturnType != typeof(bool))
+                {
+                    throw new ArgumentException(
+                        "ShouldSerialize method should return a bool.");
+                }
+                classInfo.ShouldSerializeMethods[propAttr.Name] =
+                    shouldSerializeMethod;
+            }
         }
 
         return classInfo;
