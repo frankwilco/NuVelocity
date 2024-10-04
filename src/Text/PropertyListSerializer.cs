@@ -757,7 +757,7 @@ public static class PropertyListSerializer
                 Type instanceType =
                     PropertyListMetadataCache.Get(propValueText)?.Type
                     ?? propType;
-                if (propType.IsAbstract)
+                if (instanceType.IsAbstract)
                 {
                     throw new SerializationException(
                         "Cannot deserialize to an abstract type.");
