@@ -5,7 +5,7 @@ VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuVelocity", "src\NuVelocity.csproj", "{4D0C9445-AB6C-4C99-8F15-3DF6101FC4C3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuVelocity.Graphics.ImageSharp", "src\NuVelocity.Graphics.ImageSharp.csproj", "{19C3B2DE-D192-4D0A-81F4-B27010711B3E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NuVelocity.Graphics.ImageSharp", "src\Graphics\ImageSharp\NuVelocity.Graphics.ImageSharp.csproj", "{19C3B2DE-D192-4D0A-81F4-B27010711B3E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ICSharpCode.SharpZipLib", "..\NuVelocity.SharpZipLib\src\ICSharpCode.SharpZipLib\ICSharpCode.SharpZipLib.csproj", "{8DC94D58-2545-441B-BD5D-A9C6A169FB6D}"
 EndProject
